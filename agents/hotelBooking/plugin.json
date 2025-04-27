@@ -1,0 +1,8 @@
+{
+  "id": "hotel-booking",
+  "name": "Hotel Booking Plugin",
+  "description": "Provides tools to book hotel rooms",
+  "version": "1.0.0",
+  "author": "PhiloTheePhilix",
+  "main": "index.js"
+}

@@ -7,6 +7,7 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 
+const { initializeAgents } = require('./agents/initializeAgents');
 // Load tools
 const echoTool = require(path.join(__dirname, 'tools/echo'));
 const createTokenTool = require(path.join(__dirname, 'tools/token'));
@@ -33,6 +34,8 @@ const model = new ChatOpenAI({
 // Agent executor with both tools
 let executor;
 (async () => {
+  // Initialize all agent plugins before starting the server
+  await initializeAgents();
   executor = await initializeAgentExecutorWithOptions(
     [echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic, submitTopicMessageDynamic, listTopicMessagesDynamic],
     model,
