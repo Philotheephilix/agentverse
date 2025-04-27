@@ -1,10 +1,29 @@
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import { RegisterAgentTool } from './RegisterAgentTool'; // adjust path if needed
 
 const agentsDir = path.join(__dirname, 'agents');
 
-async function initializeAgents(agentContext = {}) {
-  // Find all agent plugin index.js files
+interface AgentContext {
+  hcs10Client?: any;
+  [key: string]: any;
+}
+
+interface PluginJson {
+  name?: string;
+  accountId?: string;
+  privateKey?: string;
+  inboundTopicId?: string;
+  outboundTopicId?: string;
+  [key: string]: any;
+}
+
+interface PluginInstance {
+  onLoad?: (context: AgentContext) => Promise<void> | void;
+}
+
+export async function initializeAgents(agentContext: AgentContext = {}): Promise<void> {
+  // Find all agent plugin folders
   const agentFolders = fs.readdirSync(agentsDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
@@ -12,52 +31,58 @@ async function initializeAgents(agentContext = {}) {
   for (const folder of agentFolders) {
     const indexPath = path.join(agentsDir, folder, 'index.js');
     const pluginJsonPath = path.join(agentsDir, folder, 'plugin.json');
-    let pluginJson = {};
+    let pluginJson: PluginJson = {};
+
     if (fs.existsSync(pluginJsonPath)) {
       try {
-        pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
-      } catch (e) {
+        const data = fs.readFileSync(pluginJsonPath, 'utf8');
+        pluginJson = JSON.parse(data);
+      } catch {
         pluginJson = {};
       }
     }
-    // If Hedera IDs are missing, register the agent
+
     const missingIds = !pluginJson.accountId || !pluginJson.privateKey || !pluginJson.inboundTopicId || !pluginJson.outboundTopicId;
+
     if (missingIds && fs.existsSync(indexPath)) {
-      // Try to register the agent using RegisterAgentTool
       try {
-        const { RegisterAgentTool } = require(path.join(__dirname, 'RegisterAgentTool'));
-        // You must replace this with your actual HCS10Client instance and config
         const hcs10Client = agentContext.hcs10Client || {};
         const registerTool = new RegisterAgentTool(hcs10Client);
         const resultStr = await registerTool._call({ name: pluginJson.name || folder });
-        let result;
-        try { result = JSON.parse(resultStr); } catch (e) { result = null; }
+        
+        let result: Partial<PluginJson> | null = null;
+        try {
+          result = JSON.parse(resultStr);
+        } catch {
+          result = null;
+        }
+
         if (result && result.accountId && result.privateKey && result.inboundTopicId && result.outboundTopicId) {
           pluginJson.accountId = result.accountId;
           pluginJson.privateKey = result.privateKey;
           pluginJson.inboundTopicId = result.inboundTopicId;
           pluginJson.outboundTopicId = result.outboundTopicId;
+
           fs.writeFileSync(pluginJsonPath, JSON.stringify(pluginJson, null, 2));
         }
-      } catch (e) {
+      } catch {
         // Could not auto-register agent
       }
     }
+
     if (fs.existsSync(indexPath)) {
       const agentModule = require(indexPath);
-      // Support both default and named exports
-      const plugins = [];
+
       if (agentModule && typeof agentModule === 'object') {
         for (const key in agentModule) {
-          if (typeof agentModule[key] === 'function') {
-            // Try to instantiate if it's a plugin class
+          const PluginClass = agentModule[key];
+          if (typeof PluginClass === 'function') {
             try {
-              const plugin = new agentModule[key]();
+              const plugin: PluginInstance = new PluginClass();
               if (typeof plugin.onLoad === 'function') {
                 await plugin.onLoad(agentContext);
               }
-              plugins.push(plugin);
-            } catch (e) {
+            } catch {
               // skip if not a plugin class
             }
           }
@@ -66,5 +91,3 @@ async function initializeAgents(agentContext = {}) {
     }
   }
 }
-
-module.exports = { initializeAgents };
