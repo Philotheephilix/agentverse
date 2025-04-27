@@ -10,12 +10,18 @@ app.use(express.json());
 // Load tools
 const echoTool = require(path.join(__dirname, 'tools/echo'));
 const createTokenTool = require(path.join(__dirname, 'tools/token'));
-const createTopicTool = require(path.join(__dirname, 'tools/topic'));
+const createTopicTool = require(path.join(__dirname, 'tools/topic/create'));
+const deleteTopicTool = require(path.join(__dirname, 'tools/topic/delete'));
+const submitTopicMessageTool = require(path.join(__dirname, 'tools/topic/submit'));
+const listTopicMessagesTool = require(path.join(__dirname, 'tools/topic/list'));
 // For LangChain compatibility, wrap CommonJS exports as DynamicTool if needed
 const { DynamicTool } = require('langchain/tools');
 const echoDynamic = new DynamicTool(echoTool);
 const createTokenDynamic = new DynamicTool(createTokenTool);
 const createTopicDynamic = new DynamicTool(createTopicTool);
+const deleteTopicDynamic = new DynamicTool(deleteTopicTool);
+const submitTopicMessageDynamic = new DynamicTool(submitTopicMessageTool);
+const listTopicMessagesDynamic = new DynamicTool(listTopicMessagesTool);
 
 // OpenAI model setup (expects OPENAI_API_KEY in env)
 const model = new ChatOpenAI({
@@ -28,7 +34,7 @@ const model = new ChatOpenAI({
 let executor;
 (async () => {
   executor = await initializeAgentExecutorWithOptions(
-    [echoDynamic, createTokenDynamic, createTopicDynamic],
+    [echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic, submitTopicMessageDynamic, listTopicMessagesDynamic],
     model,
     {
       agentType: 'openai-functions',
