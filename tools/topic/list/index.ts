@@ -16,7 +16,7 @@ const schema = z.object({
   topicId: z.string().describe('Topic ID to list messages for'),
 });
 
-export const listTopicMessages = {
+module.exports = {
   name: 'list_topic_messages',
   description: 'Lists all messages for a Hedera topic. Param: topicId',
   schema,

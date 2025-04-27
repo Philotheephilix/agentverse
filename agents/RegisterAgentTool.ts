@@ -34,6 +34,7 @@ class RegisterAgentTool extends StructuredTool<RegisterAgentInput> {
   name = 'register_agent';
   description = 'Registers an agent on Hedera via HCS10Client. Returns JSON string with agent details.';
   schema = {
+    name: 'RegisterAgentTool',
     type: 'object',
     properties: {
       name: { type: 'string', description: 'Agent name' },
@@ -63,8 +64,12 @@ class RegisterAgentTool extends StructuredTool<RegisterAgentInput> {
       }
 
       return JSON.stringify(result);
-    } catch (e: any) {
-      return JSON.stringify({ error: e.message });
+    } catch (e: unknown) {
+    if (e instanceof Error) {
+        return JSON.stringify({ error: e.message });
+    } else {
+      return JSON.stringify({ error: String(e) });
+    }
     }
   }
 }

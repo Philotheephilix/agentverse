@@ -2,25 +2,25 @@ import path from 'path';
 import fs from 'fs';
 import { RegisterAgentTool } from './RegisterAgentTool'; // adjust path if needed
 
-const agentsDir = path.join(__dirname, 'agents');
+const agentsDir = path.resolve(__dirname);
 
-interface AgentContext {
+type AgentContext = {
   hcs10Client?: any;
   [key: string]: any;
-}
+};
 
-interface PluginJson {
+type PluginJson = {
   name?: string;
   accountId?: string;
   privateKey?: string;
   inboundTopicId?: string;
   outboundTopicId?: string;
   [key: string]: any;
-}
+};
 
-interface PluginInstance {
+type PluginInstance = {
   onLoad?: (context: AgentContext) => Promise<void> | void;
-}
+};
 
 export async function initializeAgents(agentContext: AgentContext = {}): Promise<void> {
   // Find all agent plugin folders

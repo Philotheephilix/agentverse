@@ -1,8 +1,5 @@
-const {
-  Client,
-  TopicMessageSubmitTransaction
-} = require("@hashgraph/sdk");
-const { MY_ACCOUNT_ID, MY_PRIVATE_KEY } = require("../../../utils/constants");
+import { Client, TopicMessageSubmitTransaction } from "@hashgraph/sdk";
+import { MY_ACCOUNT_ID, MY_PRIVATE_KEY } from "../../../utils/constants";
 
 /**
  * Submits a message to a Hedera topic.
@@ -12,7 +9,7 @@ const { MY_ACCOUNT_ID, MY_PRIVATE_KEY } = require("../../../utils/constants");
 module.exports = {
   name: 'submit_topic_message',
   description: 'Submits a message to a Hedera topic. Params: topicId, message',
-  func: async (input) => {
+  func: async (input: any) => {
     let params = input;
     if (typeof input === 'string') {
       try {
@@ -35,13 +32,23 @@ module.exports = {
       const getTopicMessage = txTopicMessageSubmit.getMessage();
       return {
         output: JSON.stringify({
-          topicMessage: getTopicMessage.toString(),
+          topicMessage: getTopicMessage ? getTopicMessage.toString() : undefined,
           topicId,
           message,
         })
       };
-    } catch (error) {
-      return { output: JSON.stringify({ error: error.message }) };
+    } catch (error: any) {
+      // Log error details
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('submit_topic_message error:', error);
+        if (error && error.stack) {
+          console.error('Stack trace:', error.stack);
+        }
+      }
+      if (error instanceof Error) {
+        return { output: JSON.stringify({ error: error.message, stack: error.stack }) };
+      }
+      return { output: JSON.stringify({ error: String(error) }) };
     } finally {
       if (client) client.close();
     }

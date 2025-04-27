@@ -1,8 +1,5 @@
-const {
-  Client,
-  TopicDeleteTransaction
-} = require("@hashgraph/sdk");
-const { MY_ACCOUNT_ID, MY_PRIVATE_KEY } = require("../../../utils/constants");
+import { Client, TopicDeleteTransaction } from "@hashgraph/sdk";
+import { MY_ACCOUNT_ID, MY_PRIVATE_KEY } from "../../../utils/constants";
 
 /**
  * Deletes a topic on Hedera.
@@ -12,7 +9,7 @@ const { MY_ACCOUNT_ID, MY_PRIVATE_KEY } = require("../../../utils/constants");
 module.exports = {
   name: 'delete_topic',
   description: 'Deletes a Hedera topic on testnet. Requires topicId.',
-  func: async (input) => {
+  func: async (input: any) => {
     let topicId;
     if (typeof input === 'string') {
       try {
@@ -46,8 +43,11 @@ module.exports = {
           hashscanUrl: `https://hashscan.io/testnet/tx/${txTopicDeleteId}`
         })
       };
-    } catch (error) {
-      return { output: JSON.stringify({ error: error.message }) };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return { output: JSON.stringify({ error: error.message }) };
+      }
+      return { output: JSON.stringify({ error: String(error) }) };
     } finally {
       if (client) client.close();
     }

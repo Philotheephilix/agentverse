@@ -7,7 +7,7 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 
-const { initializeAgents } = require('./agents/initializeAgents');
+const { initializeAgents } = require('./agents/initializeAgents.ts');
 // Load tools
 const echoTool = require(path.join(__dirname, 'tools/echo'));
 const createTokenTool = require(path.join(__dirname, 'tools/token'));
@@ -17,6 +17,20 @@ const submitTopicMessageTool = require(path.join(__dirname, 'tools/topic/submit'
 const listTopicMessagesTool = require(path.join(__dirname, 'tools/topic/list'));
 // For LangChain compatibility, wrap CommonJS exports as DynamicTool if needed
 const { DynamicTool } = require('langchain/tools');
+function assertTool(tool: any, label: string) {
+  if (!tool) throw new Error(`${label} is undefined or not exported correctly`);
+  if (typeof tool.name !== 'string') throw new Error(`${label} is missing a string 'name' property`);
+  // Optional: Log tool for debugging
+  console.log(`${label} loaded:`, tool.name);
+}
+
+assertTool(echoTool, 'echoTool');
+assertTool(createTokenTool, 'createTokenTool');
+assertTool(createTopicTool, 'createTopicTool');
+assertTool(deleteTopicTool, 'deleteTopicTool');
+assertTool(submitTopicMessageTool, 'submitTopicMessageTool');
+assertTool(listTopicMessagesTool, 'listTopicMessagesTool');
+
 const echoDynamic = new DynamicTool(echoTool);
 const createTokenDynamic = new DynamicTool(createTokenTool);
 const createTopicDynamic = new DynamicTool(createTopicTool);
@@ -32,7 +46,7 @@ const model = new ChatOpenAI({
 });
 
 // Agent executor with both tools
-let executor;
+let executor: any;
 (async () => {
   // Initialize all agent plugins before starting the server
   await initializeAgents();
@@ -49,7 +63,7 @@ let executor;
 // API endpoint for prompt analysis and tool invocation
 // To create a token, use a prompt like:
 // "Create a token with name MyToken, symbol MTK, supply 1000 using accountId 0.0.xxxx and privateKey ..."
-app.post('/api/ask', async (req, res) => {
+app.post('/api/ask', async (req: any, res: any) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
@@ -57,7 +71,12 @@ app.post('/api/ask', async (req, res) => {
     const result = await executor.call({ input: prompt });
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // TS18046: 'err' is of type 'unknown'.
+    if (err && typeof err === 'object' && 'message' in err) {
+      res.status(500).json({ error: (err as any).message });
+    } else {
+      res.status(500).json({ error: String(err) });
+    }
   }
 });
 

@@ -2,5 +2,5 @@
 module.exports = {
   name: 'echo',
   description: 'Echoes back the input string.',
-  func: async (input) => input,
+  func: async (input: any) => input,
 };
