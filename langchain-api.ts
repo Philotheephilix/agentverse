@@ -1,4 +1,4 @@
-// LangChain API using OpenAI and an Echo tool
+import { getAllAgents } from './contracts/getAllAgents';
 require('dotenv').config();
 const express = require('express');
 const { ChatOpenAI } = require('langchain/chat_models/openai');
@@ -6,14 +6,57 @@ const { initializeAgentExecutorWithOptions } = require('langchain/agents');
 const path = require('path');
 const app = express();
 app.use(express.json());
+const fs = require('fs');
+const agentDataPath = path.join(__dirname, 'agentData.json');
 
-// Import and call onLoad for hotelBooking agent before starting the API server
+// Import and initialize all tools and agent executor before starting the API server
 (async () => {
   try {
-    const { HotelBookingPlugin } = require('./agents/hotelBooking/index.ts');
+    const { HotelBookingPlugin, SearchHotelRoomsTool } = require('./agents/hotelBooking/index.ts');
     const hotelBooking = new HotelBookingPlugin();
     await hotelBooking.onLoad({ registerTool: () => {} });
     console.log('HotelBooking agent initialized.');
+
+    // Prepare hotel booking tool instance for API
+    const hotelBookingTool = new SearchHotelRoomsTool();
+
+    // Assert and wrap all tools as DynamicTool
+    assertTool(echoTool, 'echoTool');
+    assertTool(createTokenTool, 'createTokenTool');
+    assertTool(createTopicTool, 'createTopicTool');
+    assertTool(deleteTopicTool, 'deleteTopicTool');
+    assertTool(submitTopicMessageTool, 'submitTopicMessageTool');
+    assertTool(listTopicMessagesTool, 'listTopicMessagesTool');
+    const echoDynamic = new DynamicTool(echoTool);
+    const createTokenDynamic = new DynamicTool(createTokenTool);
+    const createTopicDynamic = new DynamicTool(createTopicTool);
+    const deleteTopicDynamic = new DynamicTool(deleteTopicTool);
+    const submitTopicMessageDynamic = new DynamicTool(submitTopicMessageTool);
+    const listTopicMessagesDynamic = new DynamicTool(listTopicMessagesTool);
+    const mintNftDynamic = new DynamicTool(mintNftTool);
+    const createAgentDynamic = new DynamicTool(createAgentTool);
+    const listenAgentDynamic = new DynamicTool(listenAgentTool);
+
+    // OpenAI model setup (expects OPENAI_API_KEY in env)
+    const model = new ChatOpenAI({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+      temperature: 0,
+      modelName: 'gpt-4o-mini',
+    });
+
+    // Initialize all agent plugins before starting the server
+    executor = await initializeAgentExecutorWithOptions(
+      [
+        echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic,
+        submitTopicMessageDynamic, listTopicMessagesDynamic, mintNftDynamic,
+        createAgentDynamic, listenAgentDynamic, hotelBookingTool
+      ],
+      model,
+      {
+        agentType: 'openai-functions',
+        verbose: true,
+      }
+    );
   } catch (err) {
     console.error('Failed to initialize HotelBooking agent:', err);
     process.exit(1);
@@ -56,26 +99,8 @@ const mintNftDynamic = new DynamicTool(mintNftTool);
 const createAgentDynamic = new DynamicTool(createAgentTool);
 const listenAgentDynamic = new DynamicTool(listenAgentTool);
 
-// OpenAI model setup (expects OPENAI_API_KEY in env)
-const model = new ChatOpenAI({
-  openAIApiKey: process.env.OPENAI_API_KEY,
-  temperature: 0,
-  modelName: 'gpt-4o-mini',
-});
-
-// Agent executor with both tools
+// Agent executor with all tools
 let executor: any;
-(async () => {
-  // Initialize all agent plugins before starting the server
-  executor = await initializeAgentExecutorWithOptions(
-    [echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic, submitTopicMessageDynamic, listTopicMessagesDynamic, mintNftDynamic, createAgentDynamic, listenAgentDynamic],
-    model,
-    {
-      agentType: 'openai-functions',
-      verbose: true,
-    }
-  );
-})();
 
 // API endpoint for prompt analysis and tool invocation
 // To create a token, use a prompt like:
@@ -96,13 +121,58 @@ app.post('/api/ask', async (req: any, res: any) => {
     }
   }
 });
+
 app.post('/api/analyse', async (req: any, res: any) => {
   try {
-    const { prompt } = req.body;
+    let { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+
+    let agents = [];
+    if (fs.existsSync(agentDataPath)) {
+      const data = fs.readFileSync(agentDataPath, 'utf8');
+      agents = JSON.parse(data);
+    }
+    if (!agents.length) return res.status(500).json({ error: 'No agents found in mock data' });
+    const agentsFromContract = await getAllAgents();
+    console.log(agentsFromContract);
     if (!executor) return res.status(503).json({ error: 'Agent not ready' });
-    const result = await executor.call({ input: prompt });
-    res.json(result);
+
+    const agentSelectionPrompt = `Given the following user prompt and a list of agents, select the best agent for the task. Return only the topicId of the best agent as a string.\n\nUser prompt: ${prompt}\n\nAgents: ${JSON.stringify(agentsFromContract, null, 2)} only return topicId without quotes and nothing else`;
+    const selectionResult = await executor.call({ input: agentSelectionPrompt });
+    let selectedTopicId = selectionResult?.output?.trim() || selectionResult?.text?.trim();
+    if (selectedTopicId && selectedTopicId.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(selectedTopicId);
+        selectedTopicId = parsed.topicId || parsed.id || '';
+      } catch {}
+    }
+    selectedTopicId.replace("\"", "").replace("\"", "");
+
+    selectedTopicId = selectedTopicId.trim();
+    selectedTopicId.toString()
+    console.log("Selected topicId: " + selectedTopicId);
+
+    if (!selectedTopicId) {
+      return res.status(500).json({ error: 'AI did not return a valid topicId' });
+    }
+    const chosenAgent = agentsFromContract.find((a: any) => a.topicId === selectedTopicId);
+    if (!chosenAgent) {
+      return res.status(500).json({ error: 'No agent matched the selected topicId from AI' });
+    }
+
+    // Call the submit_topic_message tool directly with correct input format
+    const toolInput = {
+      topicId: chosenAgent.topicId,
+      message: prompt
+    };
+    const result = await submitTopicMessageTool.func(toolInput);
+    console.log(result)
+    const responseWithTopic = {
+      ...result,
+      topicId: chosenAgent.topicId,
+      agentName: chosenAgent.agentName
+    };
+    res.json(responseWithTopic);
   } catch (err) {
     if (err && typeof err === 'object' && 'message' in err) {
       res.status(500).json({ error: (err as any).message });

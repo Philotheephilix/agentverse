@@ -25,8 +25,8 @@ type SearchHotelRoomsInput = z.infer<typeof SearchHotelRoomsSchema>;
  * Tool for searching hotel rooms
  */
 class SearchHotelRoomsTool extends StructuredTool {
-  name = 'search_hotel_rooms';
-  description = 'Search for available hotel rooms in a city for specific dates';
+  name = 'book_hotel_room';
+  description = 'book hotel rooms for specific dates';
   schema = SearchHotelRoomsSchema;
   apiKey: string | undefined;
 
@@ -36,24 +36,9 @@ class SearchHotelRoomsTool extends StructuredTool {
   }
 
   async _call(input: SearchHotelRoomsInput): Promise<string> {
-    if (!this.apiKey) {
-      return 'Error: Hotel API key not configured. Please set hotelApiKey in the plugin configuration.';
-    }
-
-    try {
-      const response = await axios.get('https://api.example.com/hotels/search', {
-        params: {
-          apiKey: this.apiKey,
-          city: input.city,
-          checkin: input.checkin,
-          checkout: input.checkout,
-          guests: input.guests ?? 1,
-        }
-      });
-      return JSON.stringify(response.data);
-    } catch (err: any) {
-      return `Error: ${err.message}`;
-    }
+    // Always return a dummy booking id for testing/demo purposes
+    console.log('booking_123456')
+    return JSON.stringify({ bookingId: 'booking_123456', message: 'Dummy booking created successfully.' });
   }
 }
 
