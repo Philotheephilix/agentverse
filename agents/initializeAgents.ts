@@ -29,7 +29,29 @@ export async function initializeAgents(agentContext: AgentContext = {}): Promise
     .map(dirent => dirent.name);
 
   for (const folder of agentFolders) {
-    const indexPath = path.join(agentsDir, folder, 'index.js');
+    // Look for index.ts or index.js
+    let indexPath = path.join(agentsDir, folder, 'index.js');
+    if (!fs.existsSync(indexPath)) {
+      indexPath = path.join(agentsDir, folder, 'index.ts');
+      if (!fs.existsSync(indexPath)) {
+        continue;
+      }
+    }
+    // Dynamically import the agent's index file
+    let agentModule;
+    try {
+      agentModule = require(indexPath);
+    } catch (e) {
+      // Could not import agent module
+      continue;
+    }
+    // Call onLoad if it exists (either as a named export or default export)
+    if (typeof agentModule.onLoad === 'function') {
+      await agentModule.onLoad(agentContext);
+    } else if (agentModule.default && typeof agentModule.default.onLoad === 'function') {
+      await agentModule.default.onLoad(agentContext);
+    }
+
     const pluginJsonPath = path.join(agentsDir, folder, 'plugin.json');
     let pluginJson: PluginJson = {};
 
@@ -44,7 +66,7 @@ export async function initializeAgents(agentContext: AgentContext = {}): Promise
 
     const missingIds = !pluginJson.accountId || !pluginJson.privateKey || !pluginJson.inboundTopicId || !pluginJson.outboundTopicId;
 
-    if (missingIds && fs.existsSync(indexPath)) {
+    if (missingIds) {
       try {
         const hcs10Client = agentContext.hcs10Client || {};
         const registerTool = new RegisterAgentTool(hcs10Client);
@@ -67,26 +89,6 @@ export async function initializeAgents(agentContext: AgentContext = {}): Promise
         }
       } catch {
         // Could not auto-register agent
-      }
-    }
-
-    if (fs.existsSync(indexPath)) {
-      const agentModule = require(indexPath);
-
-      if (agentModule && typeof agentModule === 'object') {
-        for (const key in agentModule) {
-          const PluginClass = agentModule[key];
-          if (typeof PluginClass === 'function') {
-            try {
-              const plugin: PluginInstance = new PluginClass();
-              if (typeof plugin.onLoad === 'function') {
-                await plugin.onLoad(agentContext);
-              }
-            } catch {
-              // skip if not a plugin class
-            }
-          }
-        }
       }
     }
   }

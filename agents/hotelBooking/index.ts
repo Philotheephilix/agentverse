@@ -1,7 +1,7 @@
 import { StructuredTool } from '@langchain/core/tools';
 import axios from 'axios';
 import { z } from 'zod';
-
+import { pollTopic } from './monitor';
 /**
  * Example Hotel Booking API Plugin for the Standards Agent Kit
  *
@@ -83,9 +83,60 @@ class HotelBookingPlugin implements BasePlugin {
   }
 
   async onLoad(context: PluginContext): Promise<void> {
+    const fs = require('fs');
+    const path = require('path');
+    const pluginJsonPath = path.join(__dirname, 'plugin.json');
+    let pluginJson: any = {};
+    if (fs.existsSync(pluginJsonPath)) {
+      try {
+        const data = fs.readFileSync(pluginJsonPath, 'utf8');
+        pluginJson = JSON.parse(data);
+      } catch {
+        pluginJson = {};
+      }
+    }
+    // Check for topicId (can be inboundTopicId, outboundTopicId, or your own key)
+    if (!pluginJson.topicId) {
+      // Assume createTopic is an async function you have access to
+      if (typeof this.createTopic === 'function') {
+        const topicId = await this.createTopic();
+        if (topicId) {
+          pluginJson.topicId = topicId;
+          fs.writeFileSync(pluginJsonPath, JSON.stringify(pluginJson, null, 2));
+        }
+      }
+    }
+    // Import and call pollTopic if topicId is available
+    if (pluginJson.topicId) {
+      try {
+        pollTopic(pluginJson.topicId);
+      } catch (e) {
+        console.error('Failed to start topic monitor:', e);
+      }
+    }
     for (const tool of this.tools) {
       context.registerTool(tool);
     }
+  }
+
+  // Use the create_topic tool to create a topic
+  private async createTopic(): Promise<string> {
+    // Dynamically import the create topic tool
+    const createTopicTool = require('../../tools/topic/create/index.ts');
+    if (createTopicTool && typeof createTopicTool.func === 'function') {
+      const result = await createTopicTool.func({});
+      if (result && result.output) {
+        try {
+          const output = JSON.parse(result.output);
+          if (output.topicId) {
+            return output.topicId;
+          }
+        } catch (e) {
+          // Failed to parse output
+        }
+      }
+    }
+    throw new Error('Failed to create topic');
   }
 }
 

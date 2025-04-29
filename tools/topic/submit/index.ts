@@ -26,15 +26,17 @@ module.exports = {
     try {
       client = Client.forTestnet();
       client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
-      const txTopicMessageSubmit = await new TopicMessageSubmitTransaction()
+      const txTopicMessageSubmit = new TopicMessageSubmitTransaction()
         .setTopicId(topicId)
         .setMessage(message);
-      const getTopicMessage = txTopicMessageSubmit.getMessage();
+      const submitResponse = await txTopicMessageSubmit.execute(client);
+      const receipt = await submitResponse.getReceipt(client);
       return {
         output: JSON.stringify({
-          topicMessage: getTopicMessage ? getTopicMessage.toString() : undefined,
+          status: receipt.status ? receipt.status.toString() : undefined,
           topicId,
           message,
+          transactionId: submitResponse.transactionId ? submitResponse.transactionId.toString() : undefined,
         })
       };
     } catch (error: any) {

@@ -7,7 +7,19 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 
-const { initializeAgents } = require('./agents/initializeAgents.ts');
+// Import and call onLoad for hotelBooking agent before starting the API server
+(async () => {
+  try {
+    const { HotelBookingPlugin } = require('./agents/hotelBooking/index.ts');
+    const hotelBooking = new HotelBookingPlugin();
+    await hotelBooking.onLoad({ registerTool: () => {} });
+    console.log('HotelBooking agent initialized.');
+  } catch (err) {
+    console.error('Failed to initialize HotelBooking agent:', err);
+    process.exit(1);
+  }
+})();
+
 // Load tools
 const echoTool = require(path.join(__dirname, 'tools/echo'));
 const createTokenTool = require(path.join(__dirname, 'tools/token'));
@@ -49,7 +61,6 @@ const model = new ChatOpenAI({
 let executor: any;
 (async () => {
   // Initialize all agent plugins before starting the server
-  await initializeAgents();
   executor = await initializeAgentExecutorWithOptions(
     [echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic, submitTopicMessageDynamic, listTopicMessagesDynamic],
     model,

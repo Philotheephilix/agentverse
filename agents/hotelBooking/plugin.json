@@ -4,5 +4,6 @@
   "description": "Provides tools to book hotel rooms",
   "version": "1.0.0",
   "author": "PhiloTheePhilix",
-  "main": "index.ts"
+  "main": "index.ts",
+  "topicId": "0.0.5921988"
 }
