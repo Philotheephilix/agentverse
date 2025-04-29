@@ -27,6 +27,9 @@ const createTopicTool = require(path.join(__dirname, 'tools/topic/create'));
 const deleteTopicTool = require(path.join(__dirname, 'tools/topic/delete'));
 const submitTopicMessageTool = require(path.join(__dirname, 'tools/topic/submit'));
 const listTopicMessagesTool = require(path.join(__dirname, 'tools/topic/list'));
+const mintNftTool = require(path.join(__dirname, 'tools/mintNft'));
+const createAgentTool = require(path.join(__dirname, 'tools/agent/create'));
+const listenAgentTool = require(path.join(__dirname, 'tools/agent/listen'));
 // For LangChain compatibility, wrap CommonJS exports as DynamicTool if needed
 const { DynamicTool } = require('langchain/tools');
 function assertTool(tool: any, label: string) {
@@ -49,6 +52,9 @@ const createTopicDynamic = new DynamicTool(createTopicTool);
 const deleteTopicDynamic = new DynamicTool(deleteTopicTool);
 const submitTopicMessageDynamic = new DynamicTool(submitTopicMessageTool);
 const listTopicMessagesDynamic = new DynamicTool(listTopicMessagesTool);
+const mintNftDynamic = new DynamicTool(mintNftTool);
+const createAgentDynamic = new DynamicTool(createAgentTool);
+const listenAgentDynamic = new DynamicTool(listenAgentTool);
 
 // OpenAI model setup (expects OPENAI_API_KEY in env)
 const model = new ChatOpenAI({
@@ -62,7 +68,7 @@ let executor: any;
 (async () => {
   // Initialize all agent plugins before starting the server
   executor = await initializeAgentExecutorWithOptions(
-    [echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic, submitTopicMessageDynamic, listTopicMessagesDynamic],
+    [echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic, submitTopicMessageDynamic, listTopicMessagesDynamic, mintNftDynamic, createAgentDynamic, listenAgentDynamic],
     model,
     {
       agentType: 'openai-functions',
@@ -83,6 +89,21 @@ app.post('/api/ask', async (req: any, res: any) => {
     res.json(result);
   } catch (err) {
     // TS18046: 'err' is of type 'unknown'.
+    if (err && typeof err === 'object' && 'message' in err) {
+      res.status(500).json({ error: (err as any).message });
+    } else {
+      res.status(500).json({ error: String(err) });
+    }
+  }
+});
+app.post('/api/analyse', async (req: any, res: any) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Prompt required' });
+    if (!executor) return res.status(503).json({ error: 'Agent not ready' });
+    const result = await executor.call({ input: prompt });
+    res.json(result);
+  } catch (err) {
     if (err && typeof err === 'object' && 'message' in err) {
       res.status(500).json({ error: (err as any).message });
     } else {
