@@ -20,7 +20,7 @@ module.exports = {
       }
       const { topicId, agentName } = params;
       if (!topicId || !agentName) {
-        return JSON.stringify({ error: "Missing required parameter. Required: topicId, agentName" });
+        return JSON.stringify(JSON.stringify({ error: "Missing required parameter. Required: topicId, agentName" }));
       }
       const client = Client.forTestnet();
       client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
@@ -42,9 +42,9 @@ module.exports = {
             .setMessage(Buffer.from(JSON.stringify(responseMessage)))
             .execute(client);
         });
-      return JSON.stringify({ listening: true, topicId, agentName });
+      return JSON.stringify(JSON.stringify({ listening: true, topicId, agentName }));
     } catch (err) {
-      return JSON.stringify({ error: 'error' });
+      return JSON.stringify(JSON.stringify({ error: 'error' }));
     }
   },
   schema: {

@@ -28,7 +28,7 @@ module.exports = {
       try {
         params = JSON.parse(input);
       } catch (e) {
-        return { output: JSON.stringify({ error: 'Invalid input format. Expecting JSON object.' }) };
+        return { output: 'Invalid input format. Expecting JSON object.' };
       }
     } else {
       params = input;
@@ -36,7 +36,7 @@ module.exports = {
 
     const { topicId } = params;
     if (!topicId) {
-      return { output: JSON.stringify({ error: 'Missing topicId.' }) };
+      return { output: 'Missing topicId.' };
     }
 
     let client: Client | null = null;

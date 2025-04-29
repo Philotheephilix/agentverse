@@ -89,16 +89,6 @@ assertTool(deleteTopicTool, 'deleteTopicTool');
 assertTool(submitTopicMessageTool, 'submitTopicMessageTool');
 assertTool(listTopicMessagesTool, 'listTopicMessagesTool');
 
-const echoDynamic = new DynamicTool(echoTool);
-const createTokenDynamic = new DynamicTool(createTokenTool);
-const createTopicDynamic = new DynamicTool(createTopicTool);
-const deleteTopicDynamic = new DynamicTool(deleteTopicTool);
-const submitTopicMessageDynamic = new DynamicTool(submitTopicMessageTool);
-const listTopicMessagesDynamic = new DynamicTool(listTopicMessagesTool);
-const mintNftDynamic = new DynamicTool(mintNftTool);
-const createAgentDynamic = new DynamicTool(createAgentTool);
-const listenAgentDynamic = new DynamicTool(listenAgentTool);
-
 // Agent executor with all tools
 let executor: any;
 

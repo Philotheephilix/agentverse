@@ -23,7 +23,7 @@ module.exports = {
       }
       const { tokenName, tokenSymbol, maxSupply, metadata } = params;
       if (!tokenName || !tokenSymbol || !maxSupply || !metadata) {
-        return JSON.stringify({ error: "Missing required parameter. Required: tokenName, tokenSymbol, maxSupply, metadata" });
+        return JSON.stringify(JSON.stringify({ error: "Missing required parameter. Required: tokenName, tokenSymbol, maxSupply, metadata" }));
       }
 
       const client = Client.forTestnet();
@@ -45,7 +45,7 @@ module.exports = {
       const txResponse = await signedTx.execute(client);
       const receipt = await txResponse.getReceipt(client);
       const tokenId = receipt.tokenId?.toString();
-      if (!tokenId) return JSON.stringify({ error: "Failed to create NFT" });
+      if (!tokenId) return JSON.stringify(JSON.stringify({ error: "Failed to create NFT" }));
 
       // Mint NFT
       const mintTx = await new TokenMintTransaction()
@@ -56,12 +56,12 @@ module.exports = {
       const mintResponse = await mintSigned.execute(client);
       const mintReceipt = await mintResponse.getReceipt(client);
 
-      return JSON.stringify({
+      return JSON.stringify(JSON.stringify({
         tokenId,
         mintStatus: mintReceipt.status ? mintReceipt.status.toString() : undefined,
-      });
+      }));
     } catch (err: any) {
-      return JSON.stringify({ error: err.message || String(err) });
+      return JSON.stringify(JSON.stringify({ error: err.message || String(err) }));
     }
   },
   schema: {

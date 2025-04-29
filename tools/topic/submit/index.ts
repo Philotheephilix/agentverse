@@ -15,12 +15,12 @@ module.exports = {
       try {
         params = JSON.parse(input);
       } catch (e) {
-        return { output: JSON.stringify({ error: 'Invalid input format. Expecting JSON object.' }) };
+        return { output: 'Invalid input format. Expecting JSON object.' };
       }
     }
     const { topicId, message } = params;
     if (!topicId || !message) {
-      return { output: JSON.stringify({ error: 'Missing topicId or message.' }) };
+      return { output: 'Missing topicId or message.' };
     }
     let client;
     try {
@@ -31,14 +31,7 @@ module.exports = {
         .setMessage(message);
       const submitResponse = await txTopicMessageSubmit.execute(client);
       const receipt = await submitResponse.getReceipt(client);
-      return {
-        output: JSON.stringify({
-          status: receipt.status ? receipt.status.toString() : undefined,
-          topicId,
-          message,
-          transactionId: submitResponse.transactionId ? submitResponse.transactionId.toString() : undefined,
-        })
-      };
+      return { output: { status: receipt.status ? receipt.status.toString() : undefined, topicId, message, transactionId: submitResponse.transactionId ? submitResponse.transactionId.toString() : undefined } };
     } catch (error: any) {
       // Log error details
       if (typeof console !== 'undefined' && console.error) {
@@ -48,9 +41,9 @@ module.exports = {
         }
       }
       if (error instanceof Error) {
-        return { output: JSON.stringify({ error: error.message, stack: error.stack }) };
+        return { output: error.message + (error.stack ? ('\n' + error.stack) : '') };
       }
-      return { output: JSON.stringify({ error: String(error) }) };
+      return { output: String(error) };
     } finally {
       if (client) client.close();
     }

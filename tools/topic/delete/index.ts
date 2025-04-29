@@ -22,7 +22,7 @@ module.exports = {
       topicId = input.topicId;
     }
     if (!topicId) {
-      return { output: JSON.stringify({ error: 'Missing topicId.' }) };
+      return JSON.stringify({ output: JSON.stringify({ error: 'Missing topicId.' }) });
     }
     let client;
     try {
@@ -36,18 +36,18 @@ module.exports = {
       const receiptTopicDeleteTx = await txTopicDeleteResponse.getReceipt(client);
       const statusTopicDeleteTx = receiptTopicDeleteTx.status;
       const txTopicDeleteId = txTopicDeleteResponse.transactionId.toString();
-      return {
+      return JSON.stringify({
         output: JSON.stringify({
           status: statusTopicDeleteTx.toString(),
           transactionId: txTopicDeleteId,
           hashscanUrl: `https://hashscan.io/testnet/tx/${txTopicDeleteId}`
         })
-      };
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
-        return { output: JSON.stringify({ error: error.message }) };
+        return JSON.stringify({ output: JSON.stringify({ error: error.message }) });
       }
-      return { output: JSON.stringify({ error: String(error) }) };
+      return JSON.stringify({ output: JSON.stringify({ error: String(error) }) });
     } finally {
       if (client) client.close();
     }

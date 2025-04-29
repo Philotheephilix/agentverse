@@ -22,19 +22,19 @@ module.exports = {
       const receiptCreateTopicTx = await txCreateTopicResponse.getReceipt(client);
       const statusCreateTopicTx = receiptCreateTopicTx.status;
       const txCreateTopicId = txCreateTopicResponse.transactionId.toString();
-      return {
+      return JSON.stringify({
         output: JSON.stringify({
           status: statusCreateTopicTx.toString(),
           transactionId: txCreateTopicId,
           topicId: receiptCreateTopicTx.topicId ? receiptCreateTopicTx.topicId.toString() : undefined,
           hashscanUrl: `https://hashscan.io/testnet/tx/${txCreateTopicId}`
         })
-      };
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
-        return { output: JSON.stringify({ error: error.message }) };
+        return JSON.stringify({ output: JSON.stringify({ error: error.message }) });
       }
-      return { output: JSON.stringify({ error: String(error) }) };
+      return JSON.stringify({ output: JSON.stringify({ error: String(error) }) });
     } finally {
       if (client) client.close();
     }
