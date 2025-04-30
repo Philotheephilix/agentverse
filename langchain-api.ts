@@ -13,12 +13,26 @@ const agentDataPath = path.join(__dirname, 'agentData.json');
 (async () => {
   try {
     const { HotelBookingPlugin, SearchHotelRoomsTool } = require('./agents/hotelBooking/index.ts');
+    const { FoodDeliveryPlugin, OrderFoodTool } = require('./agents/foodDelivery/index.ts');
+    const { FlightBookingPlugin, BookFlightTool } = require('./agents/flightBooking/index.ts');
+
+    // Initialize HotelBooking agent
     const hotelBooking = new HotelBookingPlugin();
     await hotelBooking.onLoad({ registerTool: () => {} });
     console.log('HotelBooking agent initialized.');
-
-    // Prepare hotel booking tool instance for API
     const hotelBookingTool = new SearchHotelRoomsTool();
+
+    // Initialize FoodDelivery agent
+    const foodDelivery = new FoodDeliveryPlugin();
+    await foodDelivery.onLoad({ registerTool: () => {} });
+    console.log('FoodDelivery agent initialized.');
+    const foodDeliveryTool = new OrderFoodTool();
+
+    // Initialize FlightBooking agent
+    const flightBooking = new FlightBookingPlugin();
+    await flightBooking.onLoad({ registerTool: () => {} });
+    console.log('FlightBooking agent initialized.');
+    const flightBookingTool = new BookFlightTool();
 
     // Assert and wrap all tools as DynamicTool
     assertTool(echoTool, 'echoTool');
@@ -49,7 +63,10 @@ const agentDataPath = path.join(__dirname, 'agentData.json');
       [
         echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic,
         submitTopicMessageDynamic, listTopicMessagesDynamic, mintNftDynamic,
-        createAgentDynamic, listenAgentDynamic, hotelBookingTool
+        createAgentDynamic, listenAgentDynamic,
+        hotelBookingTool,
+        foodDeliveryTool,
+        flightBookingTool
       ],
       model,
       {

@@ -1,0 +1,9 @@
+{
+  "id": "flight-booking",
+  "name": "Flight Booking Plugin",
+  "description": "Provides tools to book flight tickets",
+  "version": "1.0.0",
+  "author": "PhiloTheePhilix",
+  "main": "index.ts",
+  "topicId": "0.0.5928281"
+}

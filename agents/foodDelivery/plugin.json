@@ -1,0 +1,9 @@
+{
+  "id": "food-delivery",
+  "name": "Food Delivery Plugin",
+  "description": "Provides tools to order food from restaurants",
+  "version": "1.0.0",
+  "author": "PhiloTheePhilix",
+  "main": "index.ts",
+  "topicId": "0.0.5928272"
+}
