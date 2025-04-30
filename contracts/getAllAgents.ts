@@ -18,7 +18,7 @@ import {
   const setupClient = (): Client => {
     const client = Client.forTestnet();
     const myAccountId = AccountId.fromString("0.0.5864744");
-    const myPrivateKey = PrivateKey.fromString("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
+    const myPrivateKey = PrivateKey.fromStringED25519("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
     client.setOperator(myAccountId, myPrivateKey);
     
     return client;

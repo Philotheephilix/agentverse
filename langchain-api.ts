@@ -1,11 +1,13 @@
 import { getAllAgents } from './contracts/getAllAgents';
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const { ChatOpenAI } = require('langchain/chat_models/openai');
 const { initializeAgentExecutorWithOptions } = require('langchain/agents');
 const path = require('path');
 const app = express();
 app.use(express.json());
+app.use(cors());
 const fs = require('fs');
 const agentDataPath = path.join(__dirname, 'agentData.json');
 

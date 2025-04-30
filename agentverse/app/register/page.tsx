@@ -61,7 +61,7 @@ export default function RegisterPage() {
     localStorage.setItem("userTopicId", agentMetadata.topicId);
 
     // Navigate to the interaction page
-    //router.push("/interact")
+    router.push("/agentverse")
   }
 
   return (

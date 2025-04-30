@@ -67,63 +67,7 @@ export default function GamePage() {
   const [isAnalysing, setIsAnalysing] = useState(false)
 
   // Set up Hedera subscription when needed
-  const setupHederaSubscription = () => {
-    try {
-      
-
-      const MY_ACCOUNT_ID = AccountId.fromString("0.0.5864744");
-      const MY_PRIVATE_KEY = PrivateKey.fromStringED25519("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
-
-      // Initialize Hedera client
-      const client = Client.forTestnet()
-      
-      // Set the operator using environment variables
-
-        client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY)
-     
-
-      // Topic ID to monitor
-      const topicId = "0.0.5921988"
-      console.log(`[STANDALONE MONITOR] Polling topic: ${topicId}`)
-
-      // Set up subscription to the topic
-      new TopicMessageQuery()
-        .setTopicId(topicId)
-        .setStartTime(Date.now())
-        .subscribe(
-          client,
-          (error) => {
-            console.error("[STANDALONE MONITOR] Error:", error)
-          },
-          (message) => {
-            const content = Buffer.from(message.contents).toString("utf-8")
-            console.log(`[STANDALONE MONITOR] Message #${message.sequenceNumber}: ${content}`)
-            
-            // Parse the message to extract topic ID
-            try {
-              const data = JSON.parse(content)
-              // Look for topicId, atopic_id, or similar fields
-              const extractedTopicId = data.topicId || data.atopic_id || data.topic_id || null
-              
-              if (extractedTopicId) {
-                console.log(`[STANDALONE MONITOR] Found topic ID: ${extractedTopicId}`)
-                localStorage.setItem("agentTopicId", extractedTopicId)
-                
-                // Navigate to agent-chat once topic ID is obtained
-                router.push("/agent-chat")
-              }
-            } catch (parseError) {
-              console.error("[STANDALONE MONITOR] Error parsing message:", parseError)
-            }
-          }
-        )
-
-      console.log("[STANDALONE MONITOR] Subscription started.")
-    } catch (err) {
-      console.error("[STANDALONE MONITOR] Setup error:", err)
-    }
-  }
-
+  
   // Handle agent selection from sidebar
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgent(agentId)
@@ -160,19 +104,28 @@ export default function GamePage() {
     setIsAnalysing(true)
     
     try {
-      // Make API call but don't await the response
-      fetch("http://localhost:3000/api/analyse", {
+      // Make API call to the server with proper CORS handling
+      const analyseResponse = await fetch("http://localhost:3000/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
-      }).then(res => {
-        console.log("API call initiated")
-      }).catch(err => {
-        console.error("/api/analyse failed", err)
-      })
+      });
       
+      const result = await analyseResponse.json();
+      console.log("Analysis result:", result);
+      
+      if (result.topicId) {
+        localStorage.setItem("selectedTopicId", result.topicId);
+        localStorage.setItem("agentName", result.agentName || "Unknown Agent");
+      }
       // Set up Hedera subscription to listen for topic ID
-      setupHederaSubscription()
+      const monitorAgentResponse = await fetch("/api/monitor-agent");
+const data = await monitorAgentResponse.json();
+
+if (data.topicId) {
+  localStorage.setItem("agentTopicId", data.topicId);
+  router.push("/agent-chat");
+}
       
       // Note: Not navigating here - will navigate when topic ID is received
     } catch (err) {
