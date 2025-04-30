@@ -5,6 +5,7 @@ import { OrbitControls, Environment } from "@react-three/drei"
 import { useRef, useState, useEffect, type JSX } from "react"
 import * as THREE from "three"
 import RegisterPage from '../register/page'
+import Link from "next/link"
 
 const isMobile = (): boolean => {
   if (typeof window === "undefined") return false
@@ -257,147 +258,24 @@ export default function Component(): JSX.Element {
   }
 
   return (
-    <div className="w-full h-screen bg-gray-900 relative">
+    <div className="w-full h-screen bg-gray-900 relative overflow-hidden">
+      {/* Canvas container with fixed height */}
+      <div className="w-full h-full absolute inset-0">
+        <Canvas camera={{ position: [12, 0, -20], fov: 50 }}>
+          <Scene />
+        </Canvas>
+      </div>
       
-        <>
-          <Canvas camera={{ position: [12, 0, -20], fov: 50 }}>
-            <Scene />
-          </Canvas>
-        {showRegister ? (
-          <div className="fixed inset-0 flex items-center justify-center">
-            <RegisterPage />
-          </div>
-        ) : 
-        <div className="absolute bottom-16 left-0 right-0 flex justify-center items-center">
-            <ArcadeButton onClick={handleStart} />
-          </div>}
-          {/* Arcade Button Container */}
-         
-        </>
-
-      {/* Add this at the end of the component to include the CSS */}
-      <style jsx global>{`
-        @font-face {
-          font-family: 'Press Start 2P';
-          font-style: normal;
-          font-weight: 400;
-          src: url(https://fonts.gstatic.com/s/pressstart2p/v14/e3t4euO8T-267oIAQAu6jDQyK3nVivNm4I81.woff2) format('woff2');
-          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-        }
-        
-        .pixel-button-container {
-          position: relative;
-          display: inline-block;
-        }
-        
-        .scanlines {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-          z-index: 10;
-          background: repeating-linear-gradient(
-            0deg,
-            rgba(0, 0, 0, 0.15),
-            rgba(0, 0, 0, 0.15) 1px,
-            transparent 1px,
-            transparent 2px
-          );
-        }
-        
-        .pixel-button {
-          font-family: 'Press Start 2P', monospace;
-          font-size: 16px;
-          padding: 12px 24px;
-          background-color: #0053aa;
-          color: #ffffff;
-          border: none;
-          position: relative;
-          cursor: pointer;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          transition: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          image-rendering: pixelated;
-        }
-        
-        .pixel-button::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          border: 4px solid transparent;
-          border-image: url("data:image/svg+xml,%3Csvg width='8' height='8' viewBox='0 0 8 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='8' height='8' fill='%230053aa'/%3E%3Crect x='0' y='0' width='4' height='4' fill='%230088ff'/%3E%3Crect x='4' y='4' width='4' height='4' fill='%23003366'/%3E%3C/svg%3E") 2;
-          border-image-repeat: stretch;
-          box-sizing: border-box;
-        }
-        
-        .pixel-button::after {
-          content: '';
-          position: absolute;
-          top: -4px;
-          left: -4px;
-          right: -4px;
-          bottom: -4px;
-          background-color: transparent;
-          border: 4px solid #000;
-          z-index: -1;
-        }
-        
-        .pixel-button-pressed {
-          transform: translate(2px, 2px);
-          background-color: #003366;
-        }
-        
-        .pixel-button-blink {
-          background-color: #0088ff;
-        }
-        
-        .pixel-text {
-          position: relative;
-          z-index: 2;
-          text-shadow: 2px 2px 0px #000000;
-        }
-        
-        .pixel-arrow {
-          display: flex;
-          margin-left: 4px;
-        }
-        
-        .pixel-arrow .pixel {
-          width: 6px;
-          height: 6px;
-          background-color: #ffffff;
-          margin: 0 1px;
-        }
-        
-        .pixel-arrow-animated .pixel:nth-child(1) {
-          animation: blink 0.5s infinite;
-          animation-delay: 0s;
-        }
-        
-        .pixel-arrow-animated .pixel:nth-child(2) {
-          animation: blink 0.5s infinite;
-          animation-delay: 0.1s;
-        }
-        
-        .pixel-arrow-animated .pixel:nth-child(3) {
-          animation: blink 0.5s infinite;
-          animation-delay: 0.2s;
-        }
-        
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
-        }
-      `}</style>
+      {/* UI Elements Container - positioned correctly */}
+      {showRegister ? (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+          <RegisterPage />
+        </div>
+      ) : (
+        <div className="absolute bottom-16 left-0 right-0 flex justify-center pointer-events-auto">
+          <ArcadeButton onClick={handleStart} />
+        </div>
+      )}
     </div>
   )
 }
