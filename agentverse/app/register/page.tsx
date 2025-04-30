@@ -8,6 +8,8 @@ import PixelButton from "../components/pixel-button"
 import PixelInput from "../components/pixel-input"
 import PixelTextarea from "../components/pixel-textarea"
 import PixelSelect from "../components/pixel-select"
+import { walletClient } from "@/lib/Client"
+import { AgentRegistryContractAddress, AgentRegistryContractABI } from "@/lib/constant"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -15,6 +17,7 @@ export default function RegisterPage() {
     name: "",
     description: "",
     agentType: "hotel",
+    topicId: "",
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -22,14 +25,43 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const agent = await fetch("/api/agent/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    })
+    const res = await agent.json();
+    const agentMetadata = res.agentMetadata;
+
+    console.log(agentMetadata);
+    console.log({
+      accountId: agentMetadata.accountId,
+      description: agentMetadata.description,
+      name: agentMetadata.name,
+      topicId: agentMetadata.topicId,
+      type: agentMetadata.type,
+    });
+    console.log(typeof agentMetadata.topicId);
+    const [address] = await walletClient?.getAddresses() || [];
+
+    const tx = await walletClient?.writeContract({
+      address: AgentRegistryContractAddress,
+      abi: AgentRegistryContractABI,
+      functionName: 'registerAgent',
+      args: [agentMetadata.name, agentMetadata.description, 1, agentMetadata.topicId],
+      account: address,
+    })
+    console.log(tx);
 
     // In a real app, you would save this to a database
-    localStorage.setItem("agent", JSON.stringify(formData))
+    localStorage.setItem("userTopicId", agentMetadata.topicId);
 
     // Navigate to the interaction page
-    router.push("/interact")
+    //router.push("/interact")
   }
 
   return (

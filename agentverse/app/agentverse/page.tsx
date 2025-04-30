@@ -71,14 +71,15 @@ export default function GamePage() {
     try {
       
 
-      
+      const MY_ACCOUNT_ID = AccountId.fromString("0.0.5864744");
+      const MY_PRIVATE_KEY = PrivateKey.fromStringED25519("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
 
       // Initialize Hedera client
       const client = Client.forTestnet()
       
       // Set the operator using environment variables
 
-        client.setOperator(process.env.MY_ACCOUNT_ID!, process.env.MY_PRIVATE_KEY!)
+        client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY)
      
 
       // Topic ID to monitor
