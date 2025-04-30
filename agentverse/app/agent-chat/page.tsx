@@ -175,7 +175,7 @@ export default function InteractPage() {
             </div>
 
             <div className="absolute bottom-0 right-8 h-48 w-48 rpg-character user-character">
-              <Image src="/user.png" alt="User character" width={150} height={150} className="pixel-perfect" />
+              <Image src="/guy.png" alt="User character" width={150} height={150} className="pixel-perfect" />
             </div>
 
             {/* Messages container */}
