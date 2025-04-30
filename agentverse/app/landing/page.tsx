@@ -4,8 +4,7 @@ import { Canvas } from "@react-three/fiber"
 import { OrbitControls, Environment } from "@react-three/drei"
 import { useRef, useState, useEffect, type JSX } from "react"
 import * as THREE from "three"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import RegisterPage from '../register/page'
 
 const isMobile = (): boolean => {
   if (typeof window === "undefined") return false
@@ -251,24 +250,30 @@ const ArcadeButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
 
 // Replace the Component function's button container div with this
 export default function Component(): JSX.Element {
-  const [gameStarted, setGameStarted] = useState(false)
+  const [showRegister, setShowRegister] = useState(false)
 
-  const handleStart = () => {
-    setGameStarted(true)
-    console.log("Game started!")
-    
+  const handleStart = (): void => {
+    setShowRegister(true)
   }
 
   return (
     <div className="w-full h-screen bg-gray-900 relative">
-      <Canvas camera={{ position: [12, 0, -20], fov: 50 }}>
-        <Scene />
-      </Canvas>
-
-      {/* Arcade Button Container */}
-      <div className="absolute bottom-16 left-0 right-0 flex justify-center items-center">
-       <Link href="/register"><ArcadeButton onClick={handleStart} /></Link>
-      </div>
+      
+        <>
+          <Canvas camera={{ position: [12, 0, -20], fov: 50 }}>
+            <Scene />
+          </Canvas>
+        {showRegister ? (
+          <div className="fixed inset-0 flex items-center justify-center">
+            <RegisterPage />
+          </div>
+        ) : 
+        <div className="absolute bottom-16 left-0 right-0 flex justify-center items-center">
+            <ArcadeButton onClick={handleStart} />
+          </div>}
+          {/* Arcade Button Container */}
+         
+        </>
 
       {/* Add this at the end of the component to include the CSS */}
       <style jsx global>{`

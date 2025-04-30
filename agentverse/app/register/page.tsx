@@ -33,10 +33,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="arcade-bg min-h-screen flex flex-col items-center justify-center p-4">
+   
       <div className="pixel-container max-w-md w-full">
         <div className="pixel-header">
-          <h1 className="pixel-text text-center text-2xl mb-6">REGISTER YOUR AGENT</h1>
+          <h1 className="pixel-text text-center text-2xl mb-6">REGISTER USER AGENT</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -51,19 +51,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="form-group">
-            <label className="pixel-label">AGENT TYPE</label>
-            <PixelSelect
-              name="agentType"
-              value={formData.agentType}
-              onChange={handleChange}
-              options={[
-                { value: "hotel", label: "HOTEL RECEPTIONIST" },
-                { value: "ticket", label: "TICKET AGENT" },
-                { value: "customer", label: "CUSTOMER SERVICE" },
-              ]}
-            />
-          </div>
+          
 
           <div className="form-group">
             <label className="pixel-label">DESCRIPTION</label>
@@ -81,15 +69,10 @@ export default function RegisterPage() {
             <PixelButton type="submit" text="CREATE AGENT" />
           </div>
         </form>
-      </div>
-
-      {/* Navigation buttons */}
-      <div className="mt-8 flex justify-between w-full max-w-md">
-        <PixelButton onClick={() => router.push("/")} text="BACK" small />
-      </div>
+     
 
       {/* CRT Effect Overlay */}
-      <div className="crt-overlay"></div>
+      
     </div>
   )
 }

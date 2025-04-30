@@ -86,7 +86,7 @@ body {
 
 /* Pixel Container */
 .pixel-container {
-  background-color: rgba(18, 0, 36, 0.8);
+  background-color: rgba(18, 0, 36, 0.89);
   border: 4px solid var(--primary);
   box-shadow: 0 0 0 4px #000, 0 0 10px rgba(89, 0, 243, 0.8), 0 0 20px rgba(89, 0, 243, 0.4);
   padding: 20px;
@@ -476,3 +476,219 @@ body {
   margin-bottom: 20px;
 }
 
+/* RPG Styles */
+.rpg-bg {
+  background-color: #000000;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%235900f3' fill-opacity='0.1' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
+}
+
+.rpg-header {
+  background-color: #000000;
+  border-bottom: 4px solid #5900f3;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 10;
+}
+
+.rpg-scene {
+  background-image: url("/hotel.jpg");
+  background-size: cover;
+  background-position: center bottom;
+
+  height: 70vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.rpg-scene::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("/hotel.jpg");
+  background-size: cover;
+  background-position: center top;
+  filter: blur(3px) brightness(0.7);
+  transform: scale(1.1);
+  z-index: 0;
+}
+
+.rpg-scene > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rpg-character {
+  position: absolute;
+  bottom: 20%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.agent-character {
+  left: 15%;
+  scale: 2.5;
+}
+
+.user-character {
+  right: 15%;
+}
+
+.pixel-perfect {
+  image-rendering: pixelated;
+}
+
+.rpg-dialogue-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  z-index: 5;
+}
+
+.rpg-dialogue-box {
+  background-color: rgba(0, 0, 0, 0.85);
+  border: 4px solid #5900f3;
+  border-radius: 0;
+  padding: 16px;
+  margin-bottom: 8px;
+  position: relative;
+  color: white;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  max-width: 100%;
+  box-shadow: 0 0 10px rgba(89, 0, 243, 0.5);
+}
+
+.rpg-dialogue-box::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid #000;
+  z-index: -1;
+}
+
+.rpg-dialogue-name {
+  background-color: #5900f3;
+  color: white;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  border: 2px solid #000;
+}
+
+.rpg-dialogue-text {
+  min-height: 3em;
+}
+
+.rpg-dialogue-continue {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  animation: bounce 0.6s infinite alternate;
+}
+
+.agent-dialogue {
+  border-color: #5900f3;
+}
+
+.user-dialogue {
+  border-color: #ff00ff;
+}
+
+.user-dialogue .rpg-dialogue-name {
+  background-color: #ff00ff;
+}
+
+.rpg-input-container {
+  display: flex;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 4px solid #5900f3;
+  padding: 12px;
+  position: relative;
+}
+
+.rpg-input-container::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid #000;
+  z-index: -1;
+}
+
+.rpg-input {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.rpg-footer {
+  background-color: #000000;
+  border-top: 4px solid #5900f3;
+  position: relative;
+  z-index: 10;
+}
+
+.rpg-menu-button {
+  position: relative;
+}
+
+.rpg-cursor {
+  display: inline-block;
+  animation: blink 0.7s infinite;
+  color: #5900f3;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Loading Screen */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+/* Scene Container fade-in */
+.scene-container {
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+.scene-container.visible {
+  opacity: 1;
+}
