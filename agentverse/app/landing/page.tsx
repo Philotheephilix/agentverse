@@ -1,18 +1,24 @@
-"use client"
+"use client";
 
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Environment } from "@react-three/drei"
-import { useRef, useState, useEffect, type JSX } from "react"
-import * as THREE from "three"
-import RegisterPage from '../register/page'
-import Link from "next/link"
-
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Environment } from "@react-three/drei";
+import { useRef, useState, useEffect, type JSX } from "react";
+import * as THREE from "three";
+import RegisterPage from "../register/page";
+import Link from "next/link";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 const isMobile = (): boolean => {
-  if (typeof window === "undefined") return false
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-}
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
 
-const BoxWithEdges = ({ position }: { position: THREE.Vector3 }): JSX.Element => {
+const BoxWithEdges = ({
+  position,
+}: {
+  position: THREE.Vector3;
+}): JSX.Element => {
   return (
     <group position={position}>
       <mesh>
@@ -32,13 +38,19 @@ const BoxWithEdges = ({ position }: { position: THREE.Vector3 }): JSX.Element =>
         <lineBasicMaterial color="#5900f3" linewidth={2} />
       </lineSegments>
     </group>
-  )
-}
+  );
+};
 
-type LetterShape = (0 | 1)[][]
+type LetterShape = (0 | 1)[][];
 
-const BoxLetter = ({ letter, position }: { letter: string; position: THREE.Vector3 }): JSX.Element => {
-  const group = useRef<THREE.Group>(null)
+const BoxLetter = ({
+  letter,
+  position,
+}: {
+  letter: string;
+  position: THREE.Vector3;
+}): JSX.Element => {
+  const group = useRef<THREE.Group>(null);
 
   const getLetterShape = (letter: string): LetterShape => {
     const shapes: Record<string, LetterShape> = {
@@ -98,11 +110,11 @@ const BoxLetter = ({ letter, position }: { letter: string; position: THREE.Vecto
         [0, 0, 1],
         [1, 1, 0],
       ],
-    }
-    return shapes[letter] || shapes["N"] // Default to 'N' if letter is not found
-  }
+    };
+    return shapes[letter] || shapes["N"]; // Default to 'N' if letter is not found
+  };
 
-  const letterShape = getLetterShape(letter)
+  const letterShape = getLetterShape(letter);
 
   return (
     <group ref={group} position={position}>
@@ -110,19 +122,26 @@ const BoxLetter = ({ letter, position }: { letter: string; position: THREE.Vecto
         row.map((cell, j) => {
           if (cell) {
             let xOffset =
-              j * 0.5 - (letter === "T" ? 1 : letter === "E" ? 0.5 : letter === "X" || letter === "N" ? 1 : 0.75)
+              j * 0.5 -
+              (letter === "T"
+                ? 1
+                : letter === "E"
+                ? 0.5
+                : letter === "X" || letter === "N"
+                ? 1
+                : 0.75);
 
             if (letter === "N") {
               if (j === 0) {
-                xOffset = -0.5
+                xOffset = -0.5;
               } else if (j === 1) {
-                xOffset = 0
+                xOffset = 0;
               } else if (j === 2) {
-                xOffset = 0.25
+                xOffset = 0.25;
               } else if (j === 3) {
-                xOffset = 0.5
+                xOffset = 0.5;
               } else if (j === 4) {
-                xOffset = 1
+                xOffset = 1;
               }
             }
 
@@ -135,25 +154,30 @@ const BoxLetter = ({ letter, position }: { letter: string; position: THREE.Vecto
               letter === "R" ||
               letter === "S"
             ) {
-              xOffset = j * 0.5 - 0.5
+              xOffset = j * 0.5 - 0.5;
             }
 
-            return <BoxWithEdges key={`${i}-${j}`} position={new THREE.Vector3(xOffset, (4 - i) * 0.5 - 1, 0)} />
+            return (
+              <BoxWithEdges
+                key={`${i}-${j}`}
+                position={new THREE.Vector3(xOffset, (4 - i) * 0.5 - 1, 0)}
+              />
+            );
           }
-          return null
-        }),
+          return null;
+        })
       )}
     </group>
-  )
-}
+  );
+};
 
 const Scene = (): JSX.Element => {
-  const orbitControlsRef = useRef<any>(null)
-  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false)
+  const orbitControlsRef = useRef<any>(null);
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
 
   useEffect(() => {
-    setIsMobileDevice(isMobile())
-  }, [])
+    setIsMobileDevice(isMobile());
+  }, []);
 
   return (
     <>
@@ -184,36 +208,32 @@ const Scene = (): JSX.Element => {
       <directionalLight position={[5, 5, 5]} intensity={0.5} color="#ffffff" />
 
       <Environment
-        files={
-          isMobileDevice
-            ? "./skybox.jpg"
-            : "./skybox.jpg"
-        }
+        files={isMobileDevice ? "./skybox.jpg" : "./skybox.jpg"}
         background
       />
     </>
-  )
-}
+  );
+};
 
 // Replace the ArcadeButton component with this pixelated version
 const ArcadeButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
-  const [isHovered, setIsHovered] = useState(false)
-  const [isPressed, setIsPressed] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     // Create blinking animation effect
-    let interval: NodeJS.Timeout
+    let interval: NodeJS.Timeout;
     if (isHovered) {
       interval = setInterval(() => {
-        setIsAnimating((prev) => !prev)
-      }, 200)
+        setIsAnimating((prev) => !prev);
+      }, 200);
     }
 
     return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [isHovered])
+      if (interval) clearInterval(interval);
+    };
+  }, [isHovered]);
 
   return (
     <div className="pixel-button-container">
@@ -224,9 +244,9 @@ const ArcadeButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => {
-          setIsHovered(false)
-          setIsPressed(false)
-          setIsAnimating(false)
+          setIsHovered(false);
+          setIsPressed(false);
+          setIsAnimating(false);
         }}
         onMouseDown={() => setIsPressed(true)}
         onMouseUp={() => setIsPressed(false)}
@@ -239,23 +259,25 @@ const ArcadeButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
         <span className="pixel-text">START</span>
 
         {/* Pixelated arrow */}
-        <div className={`pixel-arrow ${isHovered ? "pixel-arrow-animated" : ""}`}>
+        <div
+          className={`pixel-arrow ${isHovered ? "pixel-arrow-animated" : ""}`}
+        >
           <div className="pixel"></div>
           <div className="pixel"></div>
           <div className="pixel"></div>
         </div>
       </button>
     </div>
-  )
-}
+  );
+};
 
 // Replace the Component function's button container div with this
 export default function Component(): JSX.Element {
-  const [showRegister, setShowRegister] = useState(false)
+  const [showRegister, setShowRegister] = useState(false);
 
   const handleStart = (): void => {
-    setShowRegister(true)
-  }
+    setShowRegister(true);
+  };
 
   return (
     <div className="w-full h-screen bg-gray-900 relative overflow-hidden">
@@ -265,7 +287,10 @@ export default function Component(): JSX.Element {
           <Scene />
         </Canvas>
       </div>
-      
+      <div className="absolute top-10 right-10 flex justify-center pointer-events-auto">
+        <ConnectButton />
+      </div>
+
       {/* UI Elements Container - positioned correctly */}
       {showRegister ? (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
@@ -274,8 +299,9 @@ export default function Component(): JSX.Element {
       ) : (
         <div className="absolute bottom-16 left-0 right-0 flex justify-center pointer-events-auto">
           <ArcadeButton onClick={handleStart} />
+          
         </div>
       )}
     </div>
-  )
+  );
 }

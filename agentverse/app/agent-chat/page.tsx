@@ -31,37 +31,7 @@ export default function InteractPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Load agent data
-  useEffect(() => {
-    const savedAgent = localStorage.getItem("agent")
-    if (savedAgent) {
-      setAgent(JSON.parse(savedAgent))
-
-      // Add initial greeting
-      setTimeout(() => {
-        const agentType = JSON.parse(savedAgent).agentType
-        let greeting = "Hello! How can I help you today?"
-
-        if (agentType === "hotel") {
-          greeting = "Welcome to Pixel Palace Hotel! How may I assist you with your stay?"
-        } else if (agentType === "ticket") {
-          greeting = "Welcome to Arcade Tickets! What event would you like tickets for?"
-        }
-
-        setMessages([
-          {
-            sender: "agent",
-            text: greeting,
-            isTyping: true,
-          },
-        ])
-        setCurrentTypingIndex(0)
-        // Remove loading screen after greeting appears
-        setTimeout(() => setIsLoading(false), 1500)
-      }, 1000)
-    } else {
-      router.push("/register")
-    }
-  }, [router])
+ 
 
   // Handle typewriter effect
   useEffect(() => {
@@ -143,19 +113,10 @@ export default function InteractPage() {
     }, 2000)
   }
 
-  if (!agent) {
-    return (
-      <div className="arcade-bg min-h-screen flex items-center justify-center">
-        <div className="pixel-container">
-          <p className="pixel-text">Loading...</p>
-        </div>
-      </div>
-    )
-  }
+
 
   return (
     <>
-      {isLoading && <LoadingScreen agentName={agent?.name} />}
       <div
         className={
           `rpg-bg min-h-screen flex flex-col scene-container ${!isLoading ? "visible" : ""}`
@@ -185,7 +146,7 @@ export default function InteractPage() {
                   className={`rpg-dialogue-box ${messages[messages.length - 1].sender === "agent" ? "agent-dialogue" : "user-dialogue"}`}
                 >
                   <div className="rpg-dialogue-name">
-                    {messages[messages.length - 1].sender === "agent" ? agent.name : "YOU"}
+
                   </div>
                   <div className="rpg-dialogue-text">
                     {messages[messages.length - 1].isTyping ? (
@@ -200,7 +161,7 @@ export default function InteractPage() {
 
               {isThinking && (
                 <div className="rpg-dialogue-box agent-dialogue">
-                  <div className="rpg-dialogue-name">{agent.name}</div>
+
                   <div className="rpg-dialogue-text">
                     <span className="thinking-dots">
                       <span className="dot">.</span>
@@ -216,17 +177,7 @@ export default function InteractPage() {
           </div>
 
           {/* Input area */}
-          <form onSubmit={handleSendMessage} className="mt-auto">
-            <div className="rpg-input-container">
-              <PixelInput
-                value={userInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserInput(e.target.value)}
-                placeholder="WHAT WILL YOU SAY?"
-                className="w-full rpg-input"
-              />
-              <PixelButton type="submit" text="SPEAK" small />
-            </div>
-          </form>
+          
         </main>
 
         {/* Footer navigation */}
