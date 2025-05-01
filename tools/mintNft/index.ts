@@ -54,11 +54,10 @@ module.exports = {
         .freezeWith(client);
       const mintSigned = await mintTx.sign(MY_PRIVATE_KEY);
       const mintResponse = await mintSigned.execute(client);
-      const mintReceipt = await mintResponse.getReceipt(client);
+      await mintResponse.getReceipt(client);
 
       return JSON.stringify(JSON.stringify({
         tokenId,
-        mintStatus: mintReceipt.status ? mintReceipt.status.toString() : undefined,
       }));
     } catch (err: any) {
       return JSON.stringify(JSON.stringify({ error: err.message || String(err) }));

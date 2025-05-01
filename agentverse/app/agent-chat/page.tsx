@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, JSX } from "react"
 import { useRouter } from "next/navigation"
 import PixelButton from "../components/pixel-button"
 import Image from "next/image"
@@ -19,59 +19,57 @@ export default function InteractPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    //const agentTopicId = localStorage.getItem("agentTopicId")
-    //const userTopicId = localStorage.getItem("userTopicId")
-
+    const agentTopicId = localStorage.getItem("agentTopicId")
+    const userTopicId = localStorage.getItem("userTopicId")
     
-
-    
-    const userSocket = new WebSocket(`ws://localhost:3000/ws-topic-listen`)
-    let first = true
+    const userSocket = new WebSocket(`ws://localhost:3000/ws-topic-listen`);
+    let first = true;
     const agentSocket = new WebSocket('ws://localhost:3000/ws-topic-listen');
+    console.log(agentTopicId)
+    agentSocket.onopen = () => {
+      console.log("WebSocket connection opened");
 
-agentSocket.onopen = () => {
-  console.log("WebSocket connection opened");
+      // Send subscription message once the connection is open
+      const message = JSON.stringify({ topicId: "0.0.5932000" });
+      agentSocket.send(message);
+    };
 
-  // Send subscription message once the connection is open
-  const message = JSON.stringify({ topicId: "0.0.5932000" });
-  agentSocket.send(message);
-};
+    agentSocket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
 
-agentSocket.onmessage = (event) => {
-  const msg = event.data.content;
-  console.log("Received message:", msg);
-};
+    agentSocket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
 
-agentSocket.onerror = (error) => {
-  console.error("WebSocket error:", error);
-};
+    userSocket.onopen = () => {
+      console.log("WebSocket connection opened");
 
-agentSocket.onclose = () => {
-  console.log("WebSocket connection closed");
-};
+      // Send subscription message once the connection is open
+      const message = JSON.stringify({ topicId: "0.0.5921988" });
+      userSocket.send(message);
+    };
 
-userSocket.onopen = () => {
-  console.log("WebSocket connection opened");
+    userSocket.onmessage = (event) => {
+      let content = "";
+      try {
+        const msgObj = JSON.parse(event.data);
+        content = msgObj.content ?? "";
+      } catch {
+        content = event.data;
+      }
+      console.log("Received message:", content);
+      // You may want to call handleIncoming("user", content) here if you display user messages
+    };
 
-  // Send subscription message once the connection is open
-  const message = JSON.stringify({ topicId: "0.0.5921988" });
-  userSocket.send(message);
-};
+    userSocket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
 
-userSocket.onmessage = (event) => {
-  const msg = event.data.content;
-  console.log("Received message:", msg);
-};
+    userSocket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
 
-userSocket.onerror = (error) => {
-  console.error("WebSocket error:", error);
-};
-
-userSocket.onclose = () => {
-  console.log("WebSocket connection closed");
-};
-
-    
     
     const handleIncoming = (sender: "user" | "agent", message: string) => {
       setMessages(prev => [
@@ -92,14 +90,40 @@ userSocket.onclose = () => {
     }
 
     userSocket.onmessage = (event) => {
-      const msg = event.data
-      setIsThinking(true)
+      let content = "";
+      try {
+        const msgObj = JSON.parse(event.data);
+        content = msgObj.content ?? "";
+      } catch {
+        content = event.data;
+      }
+    
+      console.log("Received user message:", content);
+    
+      setIsThinking(true);
       setTimeout(() => {
-        setIsThinking(false)
-        handleIncoming("user", msg)
-      }, 500)
-    }
-
+        setIsThinking(false);
+        handleIncoming("user", content);
+      }, 500);
+    };
+    agentSocket.onmessage = (event) => {
+      let content = "";
+      try {
+        const msgObj = JSON.parse(event.data);
+        content = msgObj.content ?? "";
+      } catch {
+        content = event.data;
+      }
+    
+      console.log("Received agent message:", content);
+    
+      setIsThinking(true);
+      setTimeout(() => {
+        setIsThinking(false);
+        handleIncoming("agent", content);
+      }, first ? 1000 : 500);
+      first = false;
+    };
     return () => {
       agentSocket.close()
       userSocket.close()
@@ -132,14 +156,53 @@ userSocket.onclose = () => {
 
           {/* Dialogue */}
           <div className="absolute bottom-0 left-0 right-0 p-4 rpg-dialogue-container">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`rpg-dialogue-box ${msg.sender === "agent" ? "agent-dialogue" : "user-dialogue"}`}>
-                <div className="rpg-dialogue-text">
-                  {msg.isTyping ? <TypewriterText text={msg.text} /> : msg.text}
+          {messages.map((msg, idx) => {
+              let content: JSX.Element | string = msg.text;
+
+              try {
+                const parsed = JSON.parse(msg.text);
+
+                // Check for tokenId format
+                if (parsed.tokenId) {
+                  content = (
+                    <a
+                      href={`https://hashscan.io/testnet/token/${parsed.tokenId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 underline hover:text-blue-600"
+                    >
+                      View Token on HashScan: {parsed.tokenId}
+                    </a>
+                  );
+                }
+              } catch {
+                if (
+                  msg.text.startsWith("https")
+                ) {
+                  content = (
+                    <iframe
+                      src={msg.text}
+                      className="w-152 h-120 rounded-md border"
+                      allow="fullscreen"
+                    />
+                  );
+                } else if (
+                  msg.text.includes("BK")
+                ) {
+                  content = msg.text; // Render as-is (normal confirmation)
+                } else if (msg.isTyping) {
+                  content = <TypewriterText text={msg.text} />;
+                }
+              }
+
+              return (
+                <div key={idx} className={`rpg-dialogue-box ${msg.sender === "agent" ? "agent-dialogue" : "user-dialogue"}`}>
+                  <div className="rpg-dialogue-text">{content}</div>
+                  <div className="rpg-dialogue-continue">▼</div>
                 </div>
-                <div className="rpg-dialogue-continue">▼</div>
-              </div>
-            ))}
+              );
+            })}
+
             {isThinking && (
               <div className="rpg-dialogue-box agent-dialogue">
                 <div className="rpg-dialogue-text">
