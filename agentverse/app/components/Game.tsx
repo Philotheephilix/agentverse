@@ -6,7 +6,6 @@ import { SpriteFusionResource } from '@excaliburjs/plugin-spritefusion';
 const playerImage = new ex.ImageSource('/Icon40.png');
 
 // Add this to the loader so it's ready before use
-const loader = new ex.Loader([playerImage]);
 
 class Player extends ex.Actor {
     constructor() {

@@ -21,7 +21,6 @@ class Player extends ex.Actor {
   private agents: AgentData[] = []
   private onPlayerAtAgent: (agentId: string) => void = () => {}
   private currentAgentId: string | null = null
-  private playerSprite: ex.Sprite | null = null
   private playerImage: ex.ImageSource
 
   constructor(agents: AgentData[], onPlayerAtAgent: (agentId: string) => void, playerImage: ex.ImageSource) {
@@ -38,7 +37,7 @@ class Player extends ex.Actor {
     this.z = 4
   }
 
-  onInitialize(engine: ex.Engine) {
+  onInitialize() {
     
     // Initialize velocity vector
     this.vel = new ex.Vector(0, 0)

@@ -5,15 +5,14 @@ import type React from "react"
 import { useState } from "react"
 import type { AgentData } from "../types/agent-types"
 import Image from "next/image"
-import PixelButton from "./pixel-button"
 
 interface AgentCardProps {
   agent: AgentData
   onConnect: () => void
 }
 
-const AgentCard: React.FC<AgentCardProps> = ({ agent, onConnect }) => {
-  const [showDetails, setShowDetails] = useState(false)
+const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
+  const [, setShowDetails] = useState(false)
 
   return (
     <div className="agent-card" onMouseEnter={() => setShowDetails(true)} onMouseLeave={() => setShowDetails(false)}>

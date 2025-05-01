@@ -30,7 +30,7 @@ export default function InteractPage() {
       console.log("WebSocket connection opened");
 
       // Send subscription message once the connection is open
-      const message = JSON.stringify({ topicId: "0.0.5932000" });
+      const message = JSON.stringify({ topicId: agentTopicId });
       agentSocket.send(message);
     };
 
@@ -46,7 +46,7 @@ export default function InteractPage() {
       console.log("WebSocket connection opened");
 
       // Send subscription message once the connection is open
-      const message = JSON.stringify({ topicId: "0.0.5921988" });
+      const message = JSON.stringify({ topicId: userTopicId });
       userSocket.send(message);
     };
 
