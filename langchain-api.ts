@@ -2,12 +2,66 @@ import { getAllAgents } from './contracts/getAllAgents';
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const WebSocket = require('ws');
 const { ChatOpenAI } = require('langchain/chat_models/openai');
 const { initializeAgentExecutorWithOptions } = require('langchain/agents');
 const path = require('path');
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+const server = http.createServer(app);
+
+// --- WebSocket Topic Listener Route ---
+const wss = new WebSocket.Server({ noServer: true });
+
+wss.on('connection', (ws: { on: (arg0: string, arg1: { (message: any): void; (): void; }) => void; send: (arg0: string) => void; }) => {
+  let subscription: any = null;
+  ws.on('message', (message?: { toString: () => string; }) => {
+    try {
+      const data = JSON.parse(message?.toString() || "");
+      if (data.topicId) {
+        const { Client, TopicMessageQuery, AccountId, PrivateKey } = require("@hashgraph/sdk");
+        const MY_ACCOUNT_ID = AccountId.fromString(process.env.MY_ACCOUNT_ID || "0.0.5864744");
+        const MY_PRIVATE_KEY = PrivateKey.fromStringED25519(process.env.MY_PRIVATE_KEY || "302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
+        const client = Client.forTestnet();
+        client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
+        subscription = new TopicMessageQuery()
+          .setTopicId(data.topicId)
+          .setStartTime(new Date())
+          .subscribe(
+            client,
+            (error?: any) => {
+              if (error) {
+                ws.send(JSON.stringify({ error: error.message }));
+              }
+            },
+            (msg: { contents: any; sequenceNumber: any; }) => {
+              const content = Buffer.from(msg.contents).toString("utf-8");
+              ws.send(JSON.stringify({ sequenceNumber: msg.sequenceNumber, content }));
+            }
+          );
+        ws.send(JSON.stringify({ status: `Subscribed to topic ${data.topicId}` }));
+      }
+    } catch (err) {
+      ws.send(JSON.stringify({ error: err }));
+    }
+  });
+  ws.on('close', () => {
+    if (subscription) subscription.unsubscribe();
+  });
+});
+
+server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; }, head: any) => {
+  if (request.url === '/ws-topic-listen') {
+    wss.handleUpgrade(request, socket, head, (ws: any) => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 
 (async () => {
   try {
@@ -214,6 +268,7 @@ app.post('/api/analyse', async (req: any, res: any) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`LangChain API server running on port ${PORT}`);
+  console.log(`WebSocket topic listener available at ws://localhost:${PORT}/ws-topic-listen`);
 });
