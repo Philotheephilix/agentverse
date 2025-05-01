@@ -10,6 +10,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { client, walletClient } from "@/lib/Client";
 import { AgentRegistryContractABI, AgentRegistryContractAddress } from "@/lib/constant";
 import { Agent } from "http";
+import router from "next/router";
 const isMobile = (): boolean => {
   if (typeof window === "undefined") return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -293,7 +294,7 @@ export default function Component(): JSX.Element {
       if (agent.agentAddress !== "0x0000000000000000000000000000000000000000") {
         localStorage.setItem("userTopicId", agent.topicId);
         // Agent exists, route to AgentVerse
-        //window.location.href = "/agentverse"; // or use router.push("/agentverse")
+        window.location.href = "/agentverse";
       } else {
 
         // Agent doesn't exist

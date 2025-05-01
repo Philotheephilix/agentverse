@@ -8,7 +8,7 @@ import PixelButton from "../components/pixel-button"
 import PixelInput from "../components/pixel-input"
 import PixelTextarea from "../components/pixel-textarea"
 import PixelSelect from "../components/pixel-select"
-import { walletClient } from "@/lib/Client"
+import { client, walletClient } from "@/lib/Client"
 import { AgentRegistryContractAddress, AgentRegistryContractABI } from "@/lib/constant"
 
 export default function RegisterPage() {
@@ -52,15 +52,18 @@ export default function RegisterPage() {
       address: AgentRegistryContractAddress,
       abi: AgentRegistryContractABI,
       functionName: 'registerAgent',
-      args: [agentMetadata.name, agentMetadata.description, 1, agentMetadata.topicId],
+      args: [ agentMetadata.name,
+        agentMetadata.description,
+        agentMetadata.topicId,  // this is a string
+        1,     ],
       account: address,
     })
-    console.log(tx);
 
-    // In a real app, you would save this to a database
+    const receipt = await client.waitForTransactionReceipt({
+      hash: tx!,
+    });
     localStorage.setItem("userTopicId", agentMetadata.topicId);
-
-    // Navigate to the interaction page
+    console.log(receipt);
     router.push("/agentverse")
   }
 
