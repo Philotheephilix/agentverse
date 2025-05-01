@@ -20,13 +20,15 @@ export async function POST(req: NextRequest) {
     client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
 
     console.log(`[MONITOR] Subscribing to topic: ${topicId}`);
+    const startTime = new Date();
+  console.log(`[MONITOR] Subscribing from time: ${startTime.toISOString()}`);
 
     
     // We'll store the response in a promise that resolves once a message is received
     const extractedTopicId = await new Promise<string>((resolve, reject) => {
       new TopicMessageQuery()
         .setTopicId("0.0.5921988")
-        .setStartTime(0)
+        .setStartTime(startTime)
         .subscribe(
           client,
           (error) => {

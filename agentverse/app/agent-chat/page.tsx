@@ -1,43 +1,81 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import PixelButton from "../components/pixel-button"
-import PixelInput from "../components/pixel-input"
 import Image from "next/image"
-
-type Agent = {
-  name: string
-  description: string
-  agentType: string
-}
 
 type Message = {
   sender: "user" | "agent"
   text: string
-  thinking?: boolean
   isTyping?: boolean
 }
 
 export default function InteractPage() {
   const router = useRouter()
-  const [agent, setAgent] = useState<Agent | null>(null)
-  const [userInput, setUserInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isThinking, setIsThinking] = useState(false)
   const [currentTypingIndex, setCurrentTypingIndex] = useState(-1)
-  const [isLoading, setIsLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Load agent data
- 
+  useEffect(() => {
+    const agentTopicId = localStorage.getItem("agentTopicId")
+    const userTopicId = localStorage.getItem("userTopicId")
 
-  // Handle typewriter effect
+    if (!agentTopicId || !userTopicId) {
+      console.error("Missing topic IDs in localStorage.")
+      
+    }
+
+    const agentSocket = new WebSocket(`ws://localhost:3000?topicId=0.0.5921988`)
+    const userSocket = new WebSocket(`ws://localhost:3000?topicId=0.0.5932000`)
+    let first = true
+    agentSocket.onmessage = (event) => {
+      const msg = event.data;
+      console.log("Received message:", msg);
+      // Handle the message
+    };
+    
+    
+    const handleIncoming = (sender: "user" | "agent", message: string) => {
+      setMessages(prev => [
+        ...prev,
+        { sender, text: message, isTyping: true }
+      ])
+      setCurrentTypingIndex(prev => prev + 1)
+    }
+
+    agentSocket.onmessage = (event) => {
+      const msg = event.data
+      setIsThinking(true)
+      setTimeout(() => {
+        setIsThinking(false)
+        handleIncoming("agent", msg)
+      }, first ? 1000 : 500)
+      first = false
+    }
+
+    userSocket.onmessage = (event) => {
+      const msg = event.data
+      setIsThinking(true)
+      setTimeout(() => {
+        setIsThinking(false)
+        handleIncoming("user", msg)
+      }, 500)
+    }
+
+    return () => {
+      agentSocket.close()
+      userSocket.close()
+    }
+  }, [])
+
+  // Typewriter effect for each new message
   useEffect(() => {
     if (currentTypingIndex >= 0 && currentTypingIndex < messages.length) {
+      const len = messages[currentTypingIndex].text.length * 40
       const timer = setTimeout(() => {
-        setMessages((prev) => {
+        setMessages(prev => {
           const updated = [...prev]
           updated[currentTypingIndex] = {
             ...updated[currentTypingIndex],
@@ -46,141 +84,54 @@ export default function InteractPage() {
           return updated
         })
         setCurrentTypingIndex(-1)
-      }, messages[currentTypingIndex].text.length * 40)
-
+      }, len)
       return () => clearTimeout(timer)
     }
   }, [currentTypingIndex, messages])
 
-  // Auto-scroll to bottom of messages
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!userInput.trim()) return
-
-    // Add user message
-    setMessages((prev) => [
-      ...prev,
-      {
-        sender: "user",
-        text: userInput,
-      },
-    ])
-
-    // Clear input
-    setUserInput("")
-
-    // Show agent thinking
-    setIsThinking(true)
-
-    // Simulate agent response (in a real app, this would call an AI API)
-    setTimeout(() => {
-      setIsThinking(false)
-
-      let response = "I understand. How else can I help you?"
-
-      // Simple response logic based on keywords
-      const input = userInput.toLowerCase()
-      if (agent?.agentType === "hotel") {
-        if (input.includes("room") || input.includes("book")) {
-          response = "We have several room types available. Would you prefer a standard room, deluxe room, or suite?"
-        } else if (input.includes("check in") || input.includes("arrival")) {
-          response = "Check-in time is at 3:00 PM. Early check-in may be available based on room availability."
-        } else if (input.includes("check out") || input.includes("departure")) {
-          response = "Check-out time is at 11:00 AM. Late check-out can be arranged for an additional fee."
-        }
-      } else if (agent?.agentType === "ticket") {
-        if (input.includes("price") || input.includes("cost")) {
-          response = "Tickets range from 50 to 200 coins depending on seating and event type."
-        } else if (input.includes("available") || input.includes("when")) {
-          response =
-            "We have events scheduled throughout the week. The next big event is the Pixel Championship on Friday."
-        }
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "agent",
-          text: response,
-          isTyping: true,
-        },
-      ])
-      setCurrentTypingIndex(messages.length + 1)
-    }, 2000)
-  }
-
-
-
   return (
-    <>
-      <div
-        className={
-          `rpg-bg min-h-screen flex flex-col scene-container ${!isLoading ? "visible" : ""}`
-        }
-      >
-        {/* Header */}
-        
-
-        {/* Main interaction area */}
-        <main className="flex-1 p-4 flex flex-col">
-          {/* Scene background */}
-          <div className="flex-1 relative mb-4 overflow-hidden rpg-scene">
-
-            {/* Characters */}
-            <div className="absolute bottom-0 left-8 h-48 w-48 rpg-character agent-character">
-              <Image src="/hagent.png" alt="Agent character" width={150} height={150} className="pixel-perfect" />
-            </div>
-
-            <div className="absolute bottom-0 right-8 h-48 w-48 rpg-character user-character">
-              <Image src="/guy.png" alt="User character" width={150} height={150} className="pixel-perfect" />
-            </div>
-
-            {/* Messages container */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 rpg-dialogue-container">
-              {messages.length > 0 && (
-                <div
-                  className={`rpg-dialogue-box ${messages[messages.length - 1].sender === "agent" ? "agent-dialogue" : "user-dialogue"}`}
-                >
-                  <div className="rpg-dialogue-name">
-
-                  </div>
-                  <div className="rpg-dialogue-text">
-                    {messages[messages.length - 1].isTyping ? (
-                      <TypewriterText text={messages[messages.length - 1].text} />
-                    ) : (
-                      messages[messages.length - 1].text
-                    )}
-                  </div>
-                  <div className="rpg-dialogue-continue">▼</div>
-                </div>
-              )}
-
-              {isThinking && (
-                <div className="rpg-dialogue-box agent-dialogue">
-
-                  <div className="rpg-dialogue-text">
-                    <span className="thinking-dots">
-                      <span className="dot">.</span>
-                      <span className="dot">.</span>
-                      <span className="dot">.</span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef}></div>
-            </div>
+    <div className="rpg-bg min-h-screen flex flex-col scene-container">
+      <main className="flex-1 p-4 flex flex-col">
+        <div className="flex-1 relative mb-4 overflow-hidden rpg-scene">
+          {/* Characters */}
+          <div className="absolute bottom-0 left-8 h-48 w-48 rpg-character agent-character">
+            <Image src="/hagent.png" alt="Agent character" width={150} height={150} className="pixel-perfect" />
+          </div>
+          <div className="absolute bottom-0 right-8 h-48 w-48 rpg-character user-character">
+            <Image src="/guy.png" alt="User character" width={150} height={150} className="pixel-perfect" />
           </div>
 
-          {/* Input area */}
-          
-        </main>
+          {/* Dialogue */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 rpg-dialogue-container">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`rpg-dialogue-box ${msg.sender === "agent" ? "agent-dialogue" : "user-dialogue"}`}>
+                <div className="rpg-dialogue-text">
+                  {msg.isTyping ? <TypewriterText text={msg.text} /> : msg.text}
+                </div>
+                <div className="rpg-dialogue-continue">▼</div>
+              </div>
+            ))}
+            {isThinking && (
+              <div className="rpg-dialogue-box agent-dialogue">
+                <div className="rpg-dialogue-text">
+                  <span className="thinking-dots">
+                    <span className="dot">.</span>
+                    <span className="dot">.</span>
+                    <span className="dot">.</span>
+                  </span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
 
-        {/* Footer navigation */}
+        {/* Footer with nav buttons */}
         <footer className="p-4 flex justify-between rpg-footer">
           <div className="rpg-menu-button">
             <PixelButton onClick={() => router.push("/register")} text="NEW AGENT" small />
@@ -189,45 +140,31 @@ export default function InteractPage() {
             <PixelButton onClick={() => router.push("/")} text="HOME" small />
           </div>
         </footer>
-
-        {/* CRT Effect Overlay */}
-        <div className="crt-overlay"></div>
-      </div>
-    </>
+      </main>
+      <div className="crt-overlay"></div>
+    </div>
   )
 }
 
 // Typewriter effect component
 function TypewriterText({ text }: { text: string }) {
   const [displayText, setDisplayText] = useState("")
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [idx, setIdx] = useState(0)
 
   useEffect(() => {
-    if (currentIndex < text.length) {
+    if (idx < text.length) {
       const timer = setTimeout(() => {
-        setDisplayText((prev) => prev + text[currentIndex])
-        setCurrentIndex((prev) => prev + 1)
-      }, 40) // Speed of typing
-
+        setDisplayText(prev => prev + text[idx])
+        setIdx(prev => prev + 1)
+      }, 40)
       return () => clearTimeout(timer)
     }
-  }, [currentIndex, text])
+  }, [idx, text])
 
   return (
     <>
       {displayText}
-      {currentIndex < text.length && <span className="rpg-cursor">▋</span>}
+      {idx < text.length && <span className="rpg-cursor">▋</span>}
     </>
-  )
-}
-
-// Loading overlay component
-function LoadingScreen({ agentName }: { agentName?: string }) {
-  return (
-    <div className="loading-screen">
-      <p className="pixel-text text-center animate-pulse">
-        CONNECTING TO {agentName ? agentName.toUpperCase() : "AGENT"}...
-      </p>
-    </div>
   )
 }
