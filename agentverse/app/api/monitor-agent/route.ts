@@ -37,7 +37,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           (message) => {
             const content = Buffer.from(message.contents).toString("utf-8");
             console.log(typeof content);
-            console.log(`[MONITOR] Message #${message.sequenceNumber}: ${content}`);
             resolve(NextResponse.json({ message: content }, { status: 200 }));
           }
         );

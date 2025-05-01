@@ -27,10 +27,9 @@ export async function sendTopicMessage(user: string, message: string): Promise<a
  * @param agentName string
  * @param chosenUrl string
  * @param confirmationId string
- * @param otherData object
  */
-export async function mintNftConfirmationAgent(agentName: string, chosenUrl: string, confirmationId: string, otherData: Record<string, any> = {}) {
-  const metadata = JSON.stringify({ agentName, chosenUrl, confirmationId, ...otherData });
+export async function mintNftConfirmationAgent(agentName: string, chosenUrl: string, confirmationId: string) {
+  const metadata = JSON.stringify({ agentName, chosenUrl, confirmationId });
   return mintNftModule.func({
     tokenName: "Booking Confirmation NFT",
     tokenSymbol: "BOOKNFT",
@@ -65,6 +64,7 @@ export async function pollTopic(user: string) {
       async (message) => {
         try {
           const rawContent = Buffer.from(message.contents).toString("utf-8");
+          await new Promise((resolve) => setTimeout(resolve, 7000));
           let content = rawContent;
           let user = '';
           try {
@@ -120,7 +120,7 @@ export async function pollTopic(user: string) {
             );
             // Anchor API returns { result: ... }
             price = priceResp?.result || JSON.stringify(priceResp);
-            console.log(`[MONITOR] Found price:`, price.result);
+            console.log(`[MONITOR] Found price:`, price.result.result);
             sendTopicMessage(user, typeof price === 'string' ? price : JSON.stringify(price));
           } catch (err) {
             console.error('[MONITOR] Error finding price:', err);
@@ -136,17 +136,17 @@ export async function pollTopic(user: string) {
             );
             // Anchor API returns { result: ... }
             const confirmationId = bookResp?.result || JSON.stringify(bookResp);
-            console.log(`[MONITOR] Booking confirmation ID:`, confirmationId.result);
+            console.log(`[MONITOR] Booking confirmation ID:`, confirmationId.result.result);
             sendTopicMessage(user, typeof confirmationId === 'string' ? confirmationId : JSON.stringify(confirmationId));
             // Call NFT minting agent with confirmation metadata
             try {
               const nftResult = await mintNftConfirmationAgent(
                 'hotel-booking',
                 chosenUrl,
-                confirmationId
+                confirmationId.result.result
               );
               console.log('[MONITOR] NFT Minting Result:', nftResult);
-              sendTopicMessage(user, `[NFT Minted] ${nftResult}`);
+              sendTopicMessage(user, `${nftResult}`);
             } catch (nftErr) {
               console.error('[MONITOR] Error minting NFT:', nftErr);
               sendTopicMessage(user, `[NFT Minting Error] ${nftErr}`);

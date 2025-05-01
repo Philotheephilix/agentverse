@@ -17,35 +17,36 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ noServer: true });
 
 wss.on('connection', (ws: { on: (arg0: string, arg1: { (message: any): void; (): void; }) => void; send: (arg0: string) => void; }) => {
-  let subscription: any = null;
-  ws.on('message', (message?: { toString: () => string; }) => {
-    try {
-      const data = JSON.parse(message?.toString() || "");
-      if (data.topicId) {
-        const { Client, TopicMessageQuery, AccountId, PrivateKey } = require("@hashgraph/sdk");
-        const MY_ACCOUNT_ID = AccountId.fromString(process.env.MY_ACCOUNT_ID || "0.0.5864744");
-        const MY_PRIVATE_KEY = PrivateKey.fromStringED25519(process.env.MY_PRIVATE_KEY || "302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
-        const client = Client.forTestnet();
-        client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
-        subscription = new TopicMessageQuery()
-          .setTopicId(data.topicId)
-          .setStartTime(new Date())
-          .subscribe(
-            client,
-            (error?: any) => {
-              if (error) {
-                ws.send(JSON.stringify({ error: error.message }));
-              }
-            },
-            (msg: { contents: any; sequenceNumber: any; }) => {
-              const content = Buffer.from(msg.contents).toString("utf-8");
-              ws.send(JSON.stringify({ sequenceNumber: msg.sequenceNumber, content }));
+    let subscription: any = null;
+    ws.on('message', (message?: { toString: () => string; }) => {
+        try {
+            const data = JSON.parse(message?.toString() || "");
+            if (data.topicId) {
+                const { Client, TopicMessageQuery, AccountId, PrivateKey } = require("@hashgraph/sdk");
+                const MY_ACCOUNT_ID = AccountId.fromString(process.env.MY_ACCOUNT_ID || "0.0.5864744");
+                const MY_PRIVATE_KEY = PrivateKey.fromStringED25519(process.env.MY_PRIVATE_KEY || "302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
+                const client = Client.forTestnet();
+                client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
+                subscription = new TopicMessageQuery()
+                    .setTopicId(data.topicId)
+                    .setStartTime(new Date())
+                    .subscribe(
+                        client,
+                        (error?: any) => {
+                            if (error) {
+                                ws.send(JSON.stringify({ error: error.message }));
+                            }
+                        },
+                        (msg: { contents: any; sequenceNumber: any; }) => {
+                            const content = Buffer.from(msg.contents).toString("utf-8");
+                            ws.send(JSON.stringify({ content }));
+                        }
+                    );
+                //{"sequenceNumber":{"low":379,"high":0,"unsigned":true},"content":"Analysing for the best Agent for the task..."}▋
+                ws.send(JSON.stringify({ content: `Subscribed to topic ${data.topicId}` }));
             }
-          );
-        ws.send(JSON.stringify({ status: `Subscribed to topic ${data.topicId}` }));
-      }
-    } catch (err) {
-      ws.send(JSON.stringify({ error: err }));
+        } catch (err) {
+            ws.send(JSON.stringify({ error: err }));
     }
   });
   ws.on('close', () => {
@@ -173,11 +174,11 @@ let executor: any;
 // "Create a token with name MyToken, symbol MTK, supply 1000 using accountId 0.0.xxxx and privateKey ..."
 app.post('/api/ask', async (req: any, res: any) => {
   try {
+    
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
     if (!executor) return res.status(503).json({ error: 'Agent not ready' });
     const result = await executor.call({ input: prompt }, { maxAttempts: 30 });
-    // Patch: always return a string output
     let output = result;
     if (typeof result === 'object' && result !== null) {
       if ('output' in result && typeof result.output === 'string') {
@@ -186,11 +187,6 @@ app.post('/api/ask', async (req: any, res: any) => {
         output = JSON.stringify(result);
       }
     }
-    const toolInput11 = {
-      topicId: "0.0.5932000",
-      message: output
-    };
-    const result1 = await submitTopicMessageTool.func(toolInput11);
     res.json({ output });
   } catch (err) {
     // TS18046: 'err' is of type 'unknown'.
