@@ -25,15 +25,12 @@ wss.on('connection', (ws: import('ws').WebSocket) => {
           .setStartTime(0)
           .subscribe(
             client,
-            (message: any, error: Error | null) => {
-              if (error) {
-                ws.send(JSON.stringify({ error: error.message }));
-                return;
-              }
-              if (message) {
-                const content = Buffer.from(message.contents).toString("utf-8");
-                ws.send(JSON.stringify({ sequenceNumber: message.sequenceNumber, content }));
-              }
+            (error) => {
+              console.error("[STANDALONE MONITOR] Error:", error);
+            },
+            (message: any) => {
+              const content = Buffer.from(message.contents).toString("utf-8");
+              ws.send(JSON.stringify({ sequenceNumber: message.sequenceNumber, content }));
             }
           );
         ws.send(JSON.stringify({ status: `Subscribed to topic ${topicId}` }));

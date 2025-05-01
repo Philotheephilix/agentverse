@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         );
 
       // Optional timeout
-      setTimeout(() => reject("Timeout: No message received"), 15000);
+     
     });
 
     if (!extractedTopicId) {

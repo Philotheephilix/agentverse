@@ -106,26 +106,22 @@ export default function GamePage() {
     
     try {
       // Make API call to the server with proper CORS handling
-      const analyseResponse = await fetch("http://localhost:3000/api/analyse", {
+    fetch("http://localhost:3000/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt ,userTopicId: "0.0.5932000" }),
       });
+            
+     
+       
       
-      const result = await analyseResponse.json();
-      console.log("Analysis result:", result);
-      
-      if (result.topicId) {
-        localStorage.setItem("selectedTopicId", result.topicId);
-        localStorage.setItem("agentName", result.agentName || "Unknown Agent");
-      }
       // Set up Hedera subscription to listen for topic ID
       const monitorAgentResponse = await fetch("/api/monitor-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topicId: "0.0.5932000" }),
+        body: JSON.stringify({ topicId: "0.0.5921988" }),
       });
-const data = await monitorAgentResponse.json();
+    const data = await monitorAgentResponse.json();
 
 if (data.topicId) {
   localStorage.setItem("agentTopicId", data.topicId);

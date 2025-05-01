@@ -19,22 +19,58 @@ export default function InteractPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const agentTopicId = localStorage.getItem("agentTopicId")
-    const userTopicId = localStorage.getItem("userTopicId")
+    //const agentTopicId = localStorage.getItem("agentTopicId")
+    //const userTopicId = localStorage.getItem("userTopicId")
 
-    if (!agentTopicId || !userTopicId) {
-      console.error("Missing topic IDs in localStorage.")
-      
-    }
+    
 
-    const agentSocket = new WebSocket(`ws://localhost:3000?topicId=0.0.5921988`)
-    const userSocket = new WebSocket(`ws://localhost:3000?topicId=0.0.5932000`)
+    
+    const userSocket = new WebSocket(`ws://localhost:3000/ws-topic-listen`)
     let first = true
-    agentSocket.onmessage = (event) => {
-      const msg = event.data;
-      console.log("Received message:", msg);
-      // Handle the message
-    };
+    const agentSocket = new WebSocket('ws://localhost:3000/ws-topic-listen');
+
+agentSocket.onopen = () => {
+  console.log("WebSocket connection opened");
+
+  // Send subscription message once the connection is open
+  const message = JSON.stringify({ topicId: "0.0.5932000" });
+  agentSocket.send(message);
+};
+
+agentSocket.onmessage = (event) => {
+  const msg = event.data.content;
+  console.log("Received message:", msg);
+};
+
+agentSocket.onerror = (error) => {
+  console.error("WebSocket error:", error);
+};
+
+agentSocket.onclose = () => {
+  console.log("WebSocket connection closed");
+};
+
+userSocket.onopen = () => {
+  console.log("WebSocket connection opened");
+
+  // Send subscription message once the connection is open
+  const message = JSON.stringify({ topicId: "0.0.5921988" });
+  userSocket.send(message);
+};
+
+userSocket.onmessage = (event) => {
+  const msg = event.data.content;
+  console.log("Received message:", msg);
+};
+
+userSocket.onerror = (error) => {
+  console.error("WebSocket error:", error);
+};
+
+userSocket.onclose = () => {
+  console.log("WebSocket connection closed");
+};
+
     
     
     const handleIncoming = (sender: "user" | "agent", message: string) => {
@@ -73,20 +109,20 @@ export default function InteractPage() {
   // Typewriter effect for each new message
   useEffect(() => {
     if (currentTypingIndex >= 0 && currentTypingIndex < messages.length) {
-      const len = messages[currentTypingIndex].text.length * 40
-      const timer = setTimeout(() => {
-        setMessages(prev => {
-          const updated = [...prev]
-          updated[currentTypingIndex] = {
-            ...updated[currentTypingIndex],
+      if (messages[currentTypingIndex] && messages[currentTypingIndex].text) {
+        const len = messages[currentTypingIndex].text.length * 40
+        const timer = setTimeout(() => {
+          setMessages(prev => {
+            const updated = [...prev]
+            updated[currentTypingIndex] = {
+              ...updated[currentTypingIndex],
             isTyping: false,
           }
           return updated
         })
         setCurrentTypingIndex(-1)
-      }, len)
-      return () => clearTimeout(timer)
-    }
+          }
+        )      }}
   }, [currentTypingIndex, messages])
 
   // Auto-scroll
@@ -152,7 +188,7 @@ function TypewriterText({ text }: { text: string }) {
   const [idx, setIdx] = useState(0)
 
   useEffect(() => {
-    if (idx < text.length) {
+    if (text && idx < text.length) {
       const timer = setTimeout(() => {
         setDisplayText(prev => prev + text[idx])
         setIdx(prev => prev + 1)
@@ -164,7 +200,7 @@ function TypewriterText({ text }: { text: string }) {
   return (
     <>
       {displayText}
-      {idx < text.length && <span className="rpg-cursor">▋</span>}
+      <span className="rpg-cursor">▋</span>
     </>
   )
 }
