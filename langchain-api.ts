@@ -8,10 +8,7 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 app.use(cors());
-const fs = require('fs');
-const agentDataPath = path.join(__dirname, 'agentData.json');
 
-// Import and initialize all tools and agent executor before starting the API server
 (async () => {
   try {
     const { HotelBookingPlugin, SearchHotelRoomsTool } = require('./agents/hotelBooking/index.ts');
@@ -133,15 +130,16 @@ app.post('/api/ask', async (req: any, res: any) => {
 
 app.post('/api/analyse', async (req: any, res: any) => {
   try {
-    let { prompt } = req.body;
+    let { prompt,userTopicId } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
-
-    let agents = [];
-    if (fs.existsSync(agentDataPath)) {
-      const data = fs.readFileSync(agentDataPath, 'utf8');
-      agents = JSON.parse(data);
-    }
-    if (!agents.length) return res.status(500).json({ error: 'No agents found in mock data' });
+    if (!userTopicId) return res.status(400).json({ error: 'User topicId required' })
+      else{
+        const toolInput = {
+          topicId: userTopicId,
+          message: `Analysing for the best Agent for the task...`
+        };
+        await submitTopicMessageTool.func(toolInput);
+      }
     const agentsFromContract = await getAllAgents();
     console.log(agentsFromContract);
     if (!executor) return res.status(503).json({ error: 'Agent not ready' });
@@ -160,19 +158,26 @@ app.post('/api/analyse', async (req: any, res: any) => {
     selectedTopicId = selectedTopicId.trim();
     selectedTopicId.toString()
     console.log("Selected topicId: " + selectedTopicId);
-
+    const chosenAgent = agentsFromContract.find((a: any) => a.topicId === selectedTopicId);
+    if (chosenAgent) {
+      const toolInput = {
+        topicId: userTopicId,
+        message: `Selected Agent ${chosenAgent.agentName}`
+      };
+      const result = await submitTopicMessageTool.func(toolInput);
+      console.log(result)
+    }
     if (!selectedTopicId) {
       return res.status(500).json({ error: 'AI did not return a valid topicId' });
     }
-    const chosenAgent = agentsFromContract.find((a: any) => a.topicId === selectedTopicId);
     if (!chosenAgent) {
       return res.status(500).json({ error: 'No agent matched the selected topicId from AI' });
     }
 
-    // Call the submit_topic_message tool directly with correct input format
+    // Call the submit_topic_message tool directly with correct input format to the agents topicid
     const toolInput = {
       topicId: chosenAgent.topicId,
-      message: prompt
+      message: `[from ${userTopicId}] :${prompt}`
     };
     const result = await submitTopicMessageTool.func(toolInput);
     console.log(result)

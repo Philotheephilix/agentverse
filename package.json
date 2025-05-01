@@ -12,7 +12,6 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.13.3",
     "@hashgraph/sdk": "^2.63.0",
-    "@hashgraphonline/standards-sdk": "^0.0.93",
     "@langchain/core": "^0.3.49",
     "axios": "^1.9.0",
     "cors": "^2.8.5",

@@ -1,5 +1,5 @@
 import { Client, TopicMessageQuery } from "@hashgraph/sdk";
-
+const axios = require('axios');
 import { MY_ACCOUNT_ID, MY_PRIVATE_KEY } from "../../utils/constants";
 
 export async function pollTopic(topicId: string) {
@@ -26,15 +26,21 @@ export async function pollTopic(topicId: string) {
           console.log(
             `[MONITOR] Received message #${message.sequenceNumber}: ${content}`
           );
-
+          if (content.startsWith('Yes')){
+            const response = await axios.post(
+              'http://localhost:3000/api/ask',
+              { prompt: `[from ${topicId}] :${content} <book and send the confirmation number to the users topic id>` },
+              { timeout: 30000 }
+            );
+            console.log(response.data);
+          }
           // Call the LangChain agent API with the received message
-          const axios = require('axios');
           let agentOutput;
           try {
             const response = await axios.post(
               'http://localhost:3000/api/ask',
-              { prompt: content },
-              { timeout: 15000 }
+              { prompt: `[from ${topicId}] :${content} <Find the user topicId fromt the message and send the price of the order/booking and the hotel/flight name as a message to the user TopicId>` },
+              { timeout: 30000 }
             );
             agentOutput = response.data?.output;
             if (typeof agentOutput !== 'string') {
