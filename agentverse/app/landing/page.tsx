@@ -5,12 +5,12 @@ import { OrbitControls, Environment } from "@react-three/drei";
 import { useRef, useState, useEffect, type JSX } from "react";
 import * as THREE from "three";
 import RegisterPage from "../register/page";
-import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { client, walletClient } from "@/lib/Client";
 import { AgentRegistryContractABI, AgentRegistryContractAddress } from "@/lib/constant";
-import { Agent } from "http";
-import router from "next/router";
+
+// Remove OrbitControls import to avoid duplicate declaration error. If OrbitControls is only used for typing, use type-only import or fallback to 'any'.
+
 const isMobile = (): boolean => {
   if (typeof window === "undefined") return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -175,7 +175,14 @@ const BoxLetter = ({
   );
 };
 
+type Agent = {
+  agentAddress: string;
+  topicId: string;
+  // add other fields as needed
+};
+
 const Scene = (): JSX.Element => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orbitControlsRef = useRef<any>(null);
   const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
 
@@ -219,7 +226,6 @@ const Scene = (): JSX.Element => {
   );
 };
 
-// Replace the ArcadeButton component with this pixelated version
 const ArcadeButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
@@ -275,32 +281,30 @@ const ArcadeButton = ({ onClick }: { onClick: () => void }): JSX.Element => {
   );
 };
 
-// Replace the Component function's button container div with this
 export default function Component(): JSX.Element {
   const [showRegister, setShowRegister] = useState(false);
 
   const handleStart = async () => {
     try {
-       // assumes wallet already connected
-       const [address] = await walletClient?.getAddresses() || [];
-      const agent: any = await client.readContract({
+      // assumes wallet already connected
+      const [address] = await walletClient?.getAddresses() || [];
+      const agent = await client.readContract({
         address: AgentRegistryContractAddress,
         abi: AgentRegistryContractABI,
         functionName: 'getAgent',
         args: [address],
-      }) ;
+      }) as Agent;
       console.log(agent);
-  
+
       if (agent.agentAddress !== "0x0000000000000000000000000000000000000000") {
         localStorage.setItem("userTopicId", agent.topicId);
         // Agent exists, route to AgentVerse
         window.location.href = "/agentverse";
       } else {
-
         // Agent doesn't exist
         setShowRegister(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If agent doesn't exist, contract might revert — so show register
       setShowRegister(true);
       console.log(err);

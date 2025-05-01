@@ -4,10 +4,9 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import PixelButton from "../components/pixel-button"
 import PixelInput from "../components/pixel-input"
 import PixelTextarea from "../components/pixel-textarea"
-import PixelSelect from "../components/pixel-select"
+import PixelButton from "../components/pixel-button"
 import { client, walletClient } from "@/lib/Client"
 import { AgentRegistryContractAddress, AgentRegistryContractABI } from "@/lib/constant"
 

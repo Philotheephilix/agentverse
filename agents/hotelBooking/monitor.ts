@@ -13,12 +13,12 @@ const ANCHOR_API_KEY = process.env.ANCHOR_API_KEY || '';
 
 /**
  * Sends a message to a Hedera topic using the tools/topic/submit module.
- * @param topicId string
+ * @param user string
  * @param message string
  * @returns Promise<any>
  */
-export async function sendTopicMessage(topicId: string, message: string): Promise<any> {
-  return sendTopicMessageModule.func({ topicId, message });
+export async function sendTopicMessage(user: string, message: string): Promise<any> {
+  return sendTopicMessageModule.func({ topicId:user,message: message });
 }
 
 
@@ -39,8 +39,8 @@ export async function mintNftConfirmationAgent(agentName: string, chosenUrl: str
   });
 }
 
-export async function pollTopic(topicId: string) {
-  console.log(`[MONITOR] pollTopic called for topic: ${topicId}`);
+export async function pollTopic(user: string) {
+  console.log(`[MONITOR] pollTopic called for topic: ${user}`);
   const urls = {
     hotel: "https://agentverse-hotel.vercel.app/",
     flight: "https://agentverse-flight.vercel.app/",
@@ -55,7 +55,7 @@ export async function pollTopic(topicId: string) {
   console.log(`[MONITOR] Subscribing from time: ${startTime.toISOString()}`);
 
   new TopicMessageQuery()
-    .setTopicId(topicId)
+    .setTopicId(user)
     .setStartTime(startTime)
     .subscribe(
       client,
@@ -96,14 +96,14 @@ export async function pollTopic(topicId: string) {
           }
           const chosenUrl = urls[chosenUrlKey];
           console.log(`[MONITOR] Chosen URL: ${chosenUrl}`);
-          sendTopicMessage(topicId, `Chosen Booking site URL: ${chosenUrl}`)
+          sendTopicMessage(user, `Chosen Booking site URL: ${chosenUrl}`)
           // 2. Create Anchor Browser session
           let session;
           try {
             session = await anchorSessionManager.initializeSession(ANCHOR_API_KEY);
             console.log('[MONITOR] Anchor session initialized:', session.id);
             console.log('[MONITOR] Live view URL:', session.live_view_url);
-            sendTopicMessage(topicId, session.live_view_url);
+            sendTopicMessage(user, session.live_view_url);
           } catch (err) {
             console.error('[MONITOR] Anchor session creation failed:', err);
             return;
@@ -120,8 +120,8 @@ export async function pollTopic(topicId: string) {
             );
             // Anchor API returns { result: ... }
             price = priceResp?.result || JSON.stringify(priceResp);
-            console.log(`[MONITOR] Found price:`, price);
-            sendTopicMessage(topicId, price)
+            console.log(`[MONITOR] Found price:`, price.result);
+            sendTopicMessage(user, typeof price === 'string' ? price : JSON.stringify(price));
           } catch (err) {
             console.error('[MONITOR] Error finding price:', err);
           }
@@ -136,21 +136,20 @@ export async function pollTopic(topicId: string) {
             );
             // Anchor API returns { result: ... }
             const confirmationId = bookResp?.result || JSON.stringify(bookResp);
-            console.log(`[MONITOR] Booking confirmation ID:`, confirmationId);
-            sendTopicMessage(topicId, confirmationId)
+            console.log(`[MONITOR] Booking confirmation ID:`, confirmationId.result);
+            sendTopicMessage(user, typeof confirmationId === 'string' ? confirmationId : JSON.stringify(confirmationId));
             // Call NFT minting agent with confirmation metadata
             try {
               const nftResult = await mintNftConfirmationAgent(
                 'hotel-booking',
                 chosenUrl,
-                confirmationId,
-                { user, prompt: content }
+                confirmationId
               );
               console.log('[MONITOR] NFT Minting Result:', nftResult);
-              sendTopicMessage(topicId, `[NFT Minted] ${nftResult}`);
+              sendTopicMessage(user, `[NFT Minted] ${nftResult}`);
             } catch (nftErr) {
               console.error('[MONITOR] Error minting NFT:', nftErr);
-              sendTopicMessage(topicId, `[NFT Minting Error] ${nftErr}`);
+              sendTopicMessage(user, `[NFT Minting Error] ${nftErr}`);
             }
           } catch (err) {
             console.error('[MONITOR] Error booking and getting confirmation ID:', err);
@@ -161,7 +160,7 @@ export async function pollTopic(topicId: string) {
       }
     );
 
-  console.log("[MONITOR] Subscription started for topic:", topicId);
+  console.log("[MONITOR] Subscription started for topic:", user);
 }
 
 process.on('uncaughtException', (err) => {

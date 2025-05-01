@@ -22,7 +22,7 @@ class AnchorSessionManager {
           session: {
             proxy: { type: 'anchor_residential' },
             recording: { active: false },
-            live_view: { read_only: false },
+            live_view: { read_only: true },
           },
           browser: {
             headless: {

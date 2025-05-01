@@ -19,7 +19,7 @@ class Player extends ex.Actor {
         this.z = 3;
     }
 
-    onInitialize(_engine: ex.Engine) {
+    onInitialize() {
         // Initialize velocity vector
         this.vel = new ex.Vector(0, 0);
         

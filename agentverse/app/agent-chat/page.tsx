@@ -110,19 +110,7 @@ userSocket.onclose = () => {
   useEffect(() => {
     if (currentTypingIndex >= 0 && currentTypingIndex < messages.length) {
       if (messages[currentTypingIndex] && messages[currentTypingIndex].text) {
-        const len = messages[currentTypingIndex].text.length * 40
-        const timer = setTimeout(() => {
-          setMessages(prev => {
-            const updated = [...prev]
-            updated[currentTypingIndex] = {
-              ...updated[currentTypingIndex],
-            isTyping: false,
-          }
-          return updated
-        })
-        setCurrentTypingIndex(-1)
-          }
-        )      }}
+      }}
   }, [currentTypingIndex, messages])
 
   // Auto-scroll

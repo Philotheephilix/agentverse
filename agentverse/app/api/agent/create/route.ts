@@ -9,10 +9,10 @@ import { MY_ACCOUNT_ID, MY_PRIVATE_KEY } from "@/lib/constant";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { name, description, profilePictureUrl, tools } = body;
+    const data: Record<string, unknown> = await req.json();
+    const { name, description, profilePictureUrl, tools } = data;
 
-    if (!name || !description) {
+    if (!('name' in data) || !('description' in data)) {
       return NextResponse.json(
         { error: "Missing required parameter(s): name, description" },
         { status: 400 }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     console.log(receipt);
     const agentTopicId = receipt.topicId!.toString();
     console.log(agentTopicId);  
-    const agentMetadata: Record<string, any> = {
+    const agentMetadata: Record<string, unknown> = {
       type: "agent",
       name,
       description,
@@ -44,9 +44,10 @@ export async function POST(req: NextRequest) {
     if (tools && Array.isArray(tools)) agentMetadata.tools = tools;
 
     return NextResponse.json({ agentMetadata }, { status: 200 });
-  } catch (err: any) {
+  } catch (err) {
+   
     return NextResponse.json(
-      { error: err.message || "Something went wrong." },
+      { error: err},
       { status: 500 }
     );
   }

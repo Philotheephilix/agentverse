@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import * as ex from "excalibur"
 import { SpriteFusionResource } from "@excaliburjs/plugin-spritefusion"
 import type { AgentData } from "../types/agent-types"
@@ -21,7 +21,6 @@ class Player extends ex.Actor {
   private agents: AgentData[] = []
   private onPlayerAtAgent: (agentId: string) => void = () => {}
   private currentAgentId: string | null = null
-  private playerSprite: ex.Sprite | null = null
 
   constructor(agents: AgentData[], onPlayerAtAgent: (agentId: string) => void) {
     super({
@@ -36,33 +35,12 @@ class Player extends ex.Actor {
     this.z = 3
   }
 
-  onInitialize(engine: ex.Engine) {
+  onInitialize() {
     // Initialize velocity vector
     this.vel = new ex.Vector(0, 0)
 
     // Load player sprite
-    const spriteSheet = ex.SpriteSheet.fromImageSource({
-      image: new ex.ImageSource("/player-sprite.png"),
-      grid: {
-        rows: 1,
-        columns: 4,
-        spriteWidth: 32,
-        spriteHeight: 32,
-      },
-    })
 
-    // Create animation
-    const idle = new ex.Animation({
-      frames: [
-        { graphic: spriteSheet.getSprite(0, 0), duration: 200 },
-        { graphic: spriteSheet.getSprite(1, 0), duration: 200 },
-        { graphic: spriteSheet.getSprite(2, 0), duration: 200 },
-        { graphic: spriteSheet.getSprite(3, 0), duration: 200 },
-      ],
-    })
-
-    // Set default sprite
-    this.playerSprite = spriteSheet.getSprite(0, 0)
    
 
 
@@ -170,11 +148,11 @@ const GameWrapper: React.FC<GameWrapperProps> = ({ agents, targetPosition, onPla
   const [nearbyAgent, setNearbyAgent] = useState<AgentData | null>(null)
 
   // Handle player at agent callback
-  const handlePlayerAtAgent = (agentId: string) => {
+  const handlePlayerAtAgent = useCallback((agentId: string) => {
     const agent = agents.find((a) => a.id === agentId)
     setNearbyAgent(agent || null)
     onPlayerAtAgent(agentId)
-  }
+  }, [agents, onPlayerAtAgent])
 
   // Initialize game
   useEffect(() => {
@@ -278,7 +256,7 @@ const GameWrapper: React.FC<GameWrapperProps> = ({ agents, targetPosition, onPla
       game.stop()
       gameRef.current = null
     }
-  }, [agents])
+  }, [agents, handlePlayerAtAgent])
 
   // Update player target position when it changes
   useEffect(() => {
