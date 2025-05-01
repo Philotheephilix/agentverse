@@ -243,7 +243,7 @@ app.post('/api/analyse', async (req: any, res: any) => {
           // Call the submit_topic_message tool directly with correct input format to the agents topicid
     const toolInput11 = {
       topicId: chosenAgent.topicId,
-      message: `${prompt}`
+      message: `{"User": "${userTopicId}", "prompt": "${prompt}"}`
     };
     const result1 = await submitTopicMessageTool.func(toolInput11);
     console.log(result1)

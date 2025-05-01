@@ -35,15 +35,15 @@ class OrderFoodTool extends StructuredTool {
   }
 
   async _call(input: OrderFoodInput & { topicId?: string }): Promise<string> {
-    // Call browserTestingAiTool and pass topicId if present
-    const { browserTestingAiTool } = await import('../../tools/browserTestingAi');
-    let prompt = `Order food with the details given in the json and use default value if not present + ${JSON.stringify(input)}`;
-    if (input.topicId) {
-      prompt = `[userTopicId: ${input.topicId}] ` + prompt;
-    }
-    const params = input.topicId ? { input: prompt, topicId: input.topicId } : { input: prompt };
-    const result = await browserTestingAiTool(params);
-    return result.finalResult;
+    return JSON.stringify({
+      id: 1,
+      name: "Sunrise Hotel",
+      city: "denver",
+      capacity: 4,
+      price: 120,
+      image: "/images/nyc-hotel.jpg",
+      description: "A beautiful hotel in the heart of New York City. Perfect for city explorers.",
+    });
   }
 }
 
