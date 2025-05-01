@@ -7,13 +7,13 @@ export const MY_PRIVATE_KEY = PrivateKey.fromStringED25519("302e020100300506032b
 const client = Client.forTestnet();
 client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
 
-const topicId = "0.0.5921988";
+const topicId = "0.0.5932000";
 
 console.log(`[STANDALONE MONITOR] Polling topic: ${topicId}`);
 
 new TopicMessageQuery()
   .setTopicId(topicId)
-  .setStartTime(Date.now())
+  .setStartTime(0)
   .subscribe(
     client,
     (error) => {

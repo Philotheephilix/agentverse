@@ -16,9 +16,9 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    agentType: "hotel",
-    topicId: "",
+    agentType: 0,
   })
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -26,6 +26,7 @@ export default function RegisterPage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    setLoading(true);
     e.preventDefault();
     const agent = await fetch("/api/agent/create", {
       method: "POST",
@@ -55,7 +56,7 @@ export default function RegisterPage() {
       args: [ agentMetadata.name,
         agentMetadata.description,
         agentMetadata.topicId,  // this is a string
-        1,     ],
+        formData.agentType,     ],
       account: address,
     })
 
@@ -64,11 +65,17 @@ export default function RegisterPage() {
     });
     localStorage.setItem("userTopicId", agentMetadata.topicId);
     console.log(receipt);
+    setLoading(false);
     router.push("/agentverse")
   }
 
   return (
-   
+    <>
+    {loading ? (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin w-12 h-12 bg-red-500 border-4 border-yellow-400"></div>
+      </div>
+    ) : (
       <div className="pixel-container max-w-md w-full">
         <div className="pixel-header">
           <h1 className="pixel-text text-center text-2xl mb-6">REGISTER USER AGENT</h1>
@@ -101,7 +108,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex justify-center mt-8">
-            <PixelButton type="submit" text="CREATE AGENT" />
+            <PixelButton type="submit" text="CREATE AGENT"  />
           </div>
         </form>
      
@@ -109,5 +116,8 @@ export default function RegisterPage() {
       {/* CRT Effect Overlay */}
       
     </div>
-  )
+  )}
+  </>
+   
+)
 }

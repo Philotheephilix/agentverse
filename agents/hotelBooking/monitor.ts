@@ -30,7 +30,7 @@ export async function pollTopic(topicId: string) {
             const response = await axios.post(
               'http://localhost:3000/api/ask',
               { prompt: `[from ${topicId}] :${content} <book and send the confirmation number to the users topic id>` },
-              { timeout: 30000 }
+             
             );
             console.log(response.data);
           }
@@ -39,7 +39,7 @@ export async function pollTopic(topicId: string) {
           try {
             const response = await axios.post(
               'http://localhost:3000/api/ask',
-              { prompt: `[from ${topicId}] :${content} <Find the user topicId fromt the message and send the price of the order/booking and the hotel/flight name as a message to the user TopicId>` },
+              { prompt: `${content} <Find the user topicId fromt the message and send the price of the order/booking and the hotel/flight name as a message to the user TopicId>` },
               { timeout: 30000 }
             );
             agentOutput = response.data?.output;

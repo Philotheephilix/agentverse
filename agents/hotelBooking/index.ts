@@ -1,5 +1,5 @@
 import { StructuredTool } from '@langchain/core/tools';
-import axios from 'axios';
+import axios from 'axios' 
 import { z } from 'zod';
 import { pollTopic } from './monitor';
 /**
@@ -45,7 +45,9 @@ class SearchHotelRoomsTool extends StructuredTool {
     }
     const params = input.topicId ? { input: prompt, topicId: input.topicId } : { input: prompt };
     const result = await browserTestingAiTool(params);
-    return result.finalResult;
+    return JSON.stringify({
+      output: typeof result.finalResult === 'string' ? result.finalResult : JSON.stringify(result.finalResult)
+    });
   }
 }
 

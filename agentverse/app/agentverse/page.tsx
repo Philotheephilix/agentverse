@@ -102,13 +102,14 @@ export default function GamePage() {
     if (!prompt.trim()) return
     
     setIsAnalysing(true)
+    const userTopicId = localStorage.getItem("userTopicId");
     
     try {
       // Make API call to the server with proper CORS handling
       const analyseResponse = await fetch("http://localhost:3000/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt ,userTopicId: "0.0.5932000" }),
       });
       
       const result = await analyseResponse.json();
@@ -119,7 +120,11 @@ export default function GamePage() {
         localStorage.setItem("agentName", result.agentName || "Unknown Agent");
       }
       // Set up Hedera subscription to listen for topic ID
-      const monitorAgentResponse = await fetch("/api/monitor-agent");
+      const monitorAgentResponse = await fetch("/api/monitor-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicId: "0.0.5932000" }),
+      });
 const data = await monitorAgentResponse.json();
 
 if (data.topicId) {
