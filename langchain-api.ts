@@ -54,15 +54,21 @@ app.use(cors());
     const model = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
       temperature: 0,
-      modelName: 'gpt-4o-mini',
+      modelName: 'gpt-4o',
     });
 
     // Initialize all agent plugins before starting the server
     executor = await initializeAgentExecutorWithOptions(
       [
-        echoDynamic, createTokenDynamic, createTopicDynamic, deleteTopicDynamic,
-        submitTopicMessageDynamic, listTopicMessagesDynamic, mintNftDynamic,
-        createAgentDynamic, listenAgentDynamic,
+        // echoDynamic, 
+        // createTokenDynamic, 
+        // createTopicDynamic, 
+        // deleteTopicDynamic,
+        // submitTopicMessageDynamic, 
+        // listTopicMessagesDynamic, 
+        mintNftDynamic,
+        createAgentDynamic, 
+        listenAgentDynamic,
         hotelBookingTool,
         foodDeliveryTool,
         flightBookingTool
@@ -116,8 +122,22 @@ app.post('/api/ask', async (req: any, res: any) => {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
     if (!executor) return res.status(503).json({ error: 'Agent not ready' });
-    const result = await executor.call({ input: prompt });
-    res.json(result);
+    const result = await executor.call({ input: prompt }, { maxAttempts: 30 });
+    // Patch: always return a string output
+    let output = result;
+    if (typeof result === 'object' && result !== null) {
+      if ('output' in result && typeof result.output === 'string') {
+        output = result.output;
+      } else {
+        output = JSON.stringify(result);
+      }
+    }
+    const toolInput11 = {
+      topicId: "0.0.5932000",
+      message: output
+    };
+    const result1 = await submitTopicMessageTool.func(toolInput11);
+    res.json({ output });
   } catch (err) {
     // TS18046: 'err' is of type 'unknown'.
     if (err && typeof err === 'object' && 'message' in err) {
@@ -166,27 +186,23 @@ app.post('/api/analyse', async (req: any, res: any) => {
       };
       const result = await submitTopicMessageTool.func(toolInput);
       console.log(result)
-    }
-    if (!selectedTopicId) {
-      return res.status(500).json({ error: 'AI did not return a valid topicId' });
-    }
-    if (!chosenAgent) {
-      return res.status(500).json({ error: 'No agent matched the selected topicId from AI' });
-    }
-
-    // Call the submit_topic_message tool directly with correct input format to the agents topicid
-    const toolInput = {
+          // Call the submit_topic_message tool directly with correct input format to the agents topicid
+    const toolInput11 = {
       topicId: chosenAgent.topicId,
-      message: `[from ${userTopicId}] :${prompt}`
+      message: `${prompt}`
     };
-    const result = await submitTopicMessageTool.func(toolInput);
-    console.log(result)
+    const result1 = await submitTopicMessageTool.func(toolInput11);
+    console.log(result1)
     const responseWithTopic = {
       ...result,
       topicId: chosenAgent.topicId,
       agentName: chosenAgent.agentName
     };
     res.json(responseWithTopic);
+    }
+
+
+
   } catch (err) {
     if (err && typeof err === 'object' && 'message' in err) {
       res.status(500).json({ error: (err as any).message });

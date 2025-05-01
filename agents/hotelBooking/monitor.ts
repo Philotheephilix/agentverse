@@ -26,27 +26,36 @@ export async function pollTopic(topicId: string) {
           console.log(
             `[MONITOR] Received message #${message.sequenceNumber}: ${content}`
           );
-          if (content.startsWith('Yes')){
             const response = await axios.post(
               'http://localhost:3000/api/ask',
-              { prompt: `[from ${topicId}] :${content} <book and send the confirmation number to the users topic id>` },
-             
+              { prompt: `find the price of the order/booking and the hotel/flight name for the following request: ${content}` },
             );
-            console.log(response.data);
-          }
-          // Call the LangChain agent API with the received message
+            const agentOutput1 = response.data.output;
+            // Call the LangChain agent API with the received message
           let agentOutput;
           try {
-            const response = await axios.post(
+            let response = await axios.post(
               'http://localhost:3000/api/ask',
-              { prompt: `${content} <Find the user topicId fromt the message and send the price of the order/booking and the hotel/flight name as a message to the user TopicId>` },
+              { prompt: `Return a message with the following details to the user: ${agentOutput1}` },
               { timeout: 30000 }
             );
             agentOutput = response.data?.output;
             if (typeof agentOutput !== 'string') {
               agentOutput = JSON.stringify(agentOutput);
             }
-            console.log('[MONITOR] Agent output:', agentOutput);
+            console.log('[MONITOR] Agent output:', agentOutput);          
+               response = await axios.post(
+                'http://localhost:3000/api/ask',
+                { prompt: `book the ticket and give the booking confirmation number for the following details: ${agentOutput}` },
+                { timeout: 30000 }
+              );
+              agentOutput = response.data?.output;
+              if (typeof agentOutput !== 'string') {
+                agentOutput = JSON.stringify(agentOutput);
+              }
+              console.log('[MONITOR] Agent output:', agentOutput);
+            // No further API call needed; just return the message at each step as per new requirement.
+
           } catch (err) {
             console.error('[MONITOR] Error calling agent API:', err);
           }
