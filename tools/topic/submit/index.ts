@@ -7,8 +7,8 @@ import { MY_ACCOUNT_ID, MY_PRIVATE_KEY } from "../../../utils/constants";
  * @returns {Promise<object>} Submission result or error.
  */
 module.exports = {
-  name: 'submit_topic_message',
-  description: 'Submits a message to a Hedera topic. Params: topicId, message',
+  name: 'send_topic_message',
+  description: 'sends a message to a Hedera topic. Params: topicId, message',
   func: async (input: any) => {
     let params = input;
     if (typeof input === 'string') {
