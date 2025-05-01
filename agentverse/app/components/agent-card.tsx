@@ -62,20 +62,16 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent, onConnect }) => {
             </div>
           </div>
 
-          {agent.active && (
-            <div className="agent-connect">
-              <PixelButton onClick={onConnect} text="CONNECT" small />
-            </div>
-          )}
+          
         </div>
       </div>
 
       {/* Expanded description */}
-      {showDetails && (
+      
         <div className="agent-card-details">
           <p className="pixel-text-sm">{agent.longDescription}</p>
         </div>
-      )}
+      
     </div>
   )
 }

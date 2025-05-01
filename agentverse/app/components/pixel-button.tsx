@@ -54,11 +54,7 @@ export default function PixelButton({ onClick, text, type = "button", small = fa
         <span className="pixel-text">{text}</span>
 
         {/* Pixelated arrow */}
-        <div className={`pixel-arrow ${isHovered ? "pixel-arrow-animated" : ""}`}>
-          <div className="pixel"></div>
-          <div className="pixel"></div>
-          <div className="pixel"></div>
-        </div>
+        
       </button>
     </div>
   )

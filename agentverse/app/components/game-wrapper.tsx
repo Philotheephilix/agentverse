@@ -22,47 +22,36 @@ class Player extends ex.Actor {
   private onPlayerAtAgent: (agentId: string) => void = () => {}
   private currentAgentId: string | null = null
   private playerSprite: ex.Sprite | null = null
+  private playerImage: ex.ImageSource
 
-  constructor(agents: AgentData[], onPlayerAtAgent: (agentId: string) => void) {
+  constructor(agents: AgentData[], onPlayerAtAgent: (agentId: string) => void, playerImage: ex.ImageSource) {
     super({
       pos: new ex.Vector(100, 100),
       width: 32,
       height: 32,
-      color: ex.Color.Blue,
+      color: ex.Color.Transparent,
     })
 
     this.agents = agents
     this.onPlayerAtAgent = onPlayerAtAgent
-    this.z = 3
+    this.playerImage = playerImage
+    this.z = 4
   }
 
   onInitialize(engine: ex.Engine) {
+    
     // Initialize velocity vector
     this.vel = new ex.Vector(0, 0)
 
     // Load player sprite
-    const spriteSheet = ex.SpriteSheet.fromImageSource({
-      image: new ex.ImageSource("/player-sprite.png"),
-      grid: {
-        rows: 1,
-        columns: 4,
-        spriteWidth: 32,
-        spriteHeight: 32,
-      },
-    })
+    
 
     // Create animation
-    const idle = new ex.Animation({
-      frames: [
-        { graphic: spriteSheet.getSprite(0, 0), duration: 200 },
-        { graphic: spriteSheet.getSprite(1, 0), duration: 200 },
-        { graphic: spriteSheet.getSprite(2, 0), duration: 200 },
-        { graphic: spriteSheet.getSprite(3, 0), duration: 200 },
-      ],
-    })
+    
 
     // Set default sprite
-    this.playerSprite = spriteSheet.getSprite(0, 0)
+    const sprite = this.playerImage.toSprite();
+    this.graphics.use(sprite);
    
 
 
@@ -183,14 +172,15 @@ const GameWrapper: React.FC<GameWrapperProps> = ({ agents, targetPosition, onPla
     }
 
     const game = new ex.Engine({
+      suppressPlayButton: true,
       width: 800,
       height: 600,
       backgroundColor: ex.Color.fromHex("#120024"),
-      suppressPlayButton: true,
       canvasElement: canvasRef.current,
       antialiasing: false, // For pixel-perfect rendering
     })
-
+    const playerImage = new ex.ImageSource('/Icon40.png')
+    
     // Create a tilemap resource
     const spriteFusionMap = new SpriteFusionResource({
       mapPath: "/map/map.json",
@@ -209,10 +199,11 @@ const GameWrapper: React.FC<GameWrapperProps> = ({ agents, targetPosition, onPla
       },
     })
 
-    const loader = new ex.Loader([spriteFusionMap])
+    const loader = new ex.Loader([spriteFusionMap, playerImage])
 
     // Start the game
     game.start(loader).then(() => {
+
       // Add map first
       spriteFusionMap.addToScene(game.currentScene)
 
@@ -222,7 +213,7 @@ const GameWrapper: React.FC<GameWrapperProps> = ({ agents, targetPosition, onPla
           pos: new ex.Vector(agent.position.x, agent.position.y),
           width: 32,
           height: 32,
-          color: agent.active ? ex.Color.Green : ex.Color.Red,
+          color: agent.active ? ex.Color.Transparent : ex.Color.Red,
         })
 
         // Add a pulsing effect to active agents
@@ -261,7 +252,9 @@ const GameWrapper: React.FC<GameWrapperProps> = ({ agents, targetPosition, onPla
       })
 
       // Add player after map is loaded
-      const player = new Player(agents, handlePlayerAtAgent)
+
+      const player = new Player(agents, handlePlayerAtAgent, playerImage)
+
       player.pos = new ex.Vector(100, 100)
       game.currentScene.add(player)
       playerRef.current = player

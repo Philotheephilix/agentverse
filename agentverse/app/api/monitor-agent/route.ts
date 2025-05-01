@@ -38,7 +38,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             const content = Buffer.from(message.contents).toString("utf-8");
             console.log(typeof content);
             console.log(`[MONITOR] Message #${message.sequenceNumber}: ${content}`);
-            resolve(NextResponse.json({ message: content }, { status: 200 }));
+            let agentName = null;
+          
+          // Pattern 1: "Selected agent: AgentName" or "Selected Agent: AgentName"
+          const selectedAgentMatch = content.match(/[Ss]elected [Aa]gent:?\s+["']?([^"'\n,]+)["']?/);
+          if (selectedAgentMatch && selectedAgentMatch[1]) {
+            agentName = selectedAgentMatch[1].trim();
+            console.log(`[MONITOR] Found selected agent: ${agentName}`);
+            return resolve(NextResponse.json({ agent: agentName }, { status: 200 }));
+          }
+          
+           
           }
         );
      

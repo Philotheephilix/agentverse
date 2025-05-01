@@ -3,6 +3,10 @@
 import { useEffect, useRef } from 'react';
 import * as ex from 'excalibur';
 import { SpriteFusionResource } from '@excaliburjs/plugin-spritefusion';
+const playerImage = new ex.ImageSource('/Icon40.png');
+
+// Add this to the loader so it's ready before use
+const loader = new ex.Loader([playerImage]);
 
 class Player extends ex.Actor {
     constructor() {
@@ -10,18 +14,23 @@ class Player extends ex.Actor {
             pos: new ex.Vector(100, 100),
             width: 32,
             height: 32,
-            color: ex.Color.Blue
+            color: ex.Color.Transparent
+            //image source
+           
         });
+
         // Set up collision body for platformer physics
         //this.body.collisionType = ex.CollisionType.Active;
         
         // Set z-index to render above map
-        this.z = 3;
+        this.z = 5;
     }
 
     onInitialize() {
         // Initialize velocity vector
         this.vel = new ex.Vector(0, 0);
+        const sprite = playerImage.toSprite();
+        this.graphics.use(sprite);
         
         // Use engine update instead of preupdate for better input handling
         this.on('postupdate', () => this.handleInput());
@@ -43,24 +52,29 @@ class Player extends ex.Actor {
 
     handleInput() {
         if (!this.scene) return;
+        //set player boundary
+        this.pos.x = Math.max(0, Math.min(this.pos.x, 600 - this.width));
+        this.pos.y = Math.max(0, Math.min(this.pos.y, 800 - this.height));
         
-        const speed = 75;
+        const speed = 120;
         const keyboard = this.scene.engine.input.keyboard;
         
         // Reset velocity
         let direction = ex.Vector.Zero;
         
         // Handle horizontal movement
-        if (keyboard.isHeld(ex.Keys.Left) || keyboard.isHeld(ex.Keys.A)) {
+
+
+        if (keyboard.isHeld(ex.Keys.Left)) {
             direction.x = -1;
-        } else if (keyboard.isHeld(ex.Keys.Right) || keyboard.isHeld(ex.Keys.D)) {
+        } else if (keyboard.isHeld(ex.Keys.Right)) {
             direction.x = 1;
         }
         
         // Handle vertical movement
-        if (keyboard.isHeld(ex.Keys.Up) || keyboard.isHeld(ex.Keys.W)) {
+        if (keyboard.isHeld(ex.Keys.Up)) {
             direction.y = -1;
-        } else if (keyboard.isHeld(ex.Keys.Down) || keyboard.isHeld(ex.Keys.S)) {
+        } else if (keyboard.isHeld(ex.Keys.Down)) {
             direction.y = 1;
         }
         
