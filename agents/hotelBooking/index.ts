@@ -16,7 +16,8 @@ const SearchHotelRoomsSchema = z.object({
   city: z.string().describe('The city to search hotels in'),
   checkin: z.string().describe('Check-in date (YYYY-MM-DD)'),
   checkout: z.string().describe('Check-out date (YYYY-MM-DD)'),
-  guests: z.number().optional().describe('Number of guests')
+  guests: z.number().optional().describe('Number of guests'),
+  topicId: z.string().describe('User topic id for messaging')
 });
 
 type SearchHotelRoomsInput = z.infer<typeof SearchHotelRoomsSchema>;
@@ -35,10 +36,16 @@ class SearchHotelRoomsTool extends StructuredTool {
     this.apiKey = apiKey;
   }
 
-  async _call(input: SearchHotelRoomsInput): Promise<string> {
-    // Always return a dummy booking id for testing/demo purposes
-    console.log('booking_123456')
-    return JSON.stringify({ bookingId: 'booking_123456', message: 'Dummy booking created successfully.' });
+  async _call(input: SearchHotelRoomsInput & { topicId?: string }): Promise<string> {
+    // Call browserTestingAiTool and pass topicId if present
+    const { browserTestingAiTool } = await import('../../tools/browserTestingAi');
+    let prompt = `Book hotel rooms with the details given in the json and use default value if not present + ${JSON.stringify(input)}`;
+    if (input.topicId) {
+      prompt = `[userTopicId: ${input.topicId}] ` + prompt;
+    }
+    const params = input.topicId ? { input: prompt, topicId: input.topicId } : { input: prompt };
+    const result = await browserTestingAiTool(params);
+    return result.finalResult;
   }
 }
 

@@ -173,46 +173,50 @@ async def test_modules(request: TestModulesRequest):
         for module in request.modules:
             updated_submodules = []
             for sub in module.get("submodules", []):
-                # A more compelling and clear prompt for testing the feature
-                test_prompt = (
-                    f"Please thoroughly evaluate the functionality of the feature '{sub.get('title')}' "
-                    f"on the website '{request.site_url}'. The feature is described as: '{sub.get('description')}'. "
-                    "Interact with the page and perform all necessary steps to confirm that this feature is working as expected. "
-                    "Once you have completed your evaluation, return a concise JSON response in the exact format: "
-                    "{'approved': true} if the feature functions correctly, or {'approved': false} if it does not."
-                )
+                agent_type = module.get('agent', '').lower() if 'agent' in module else ''
+                # Always use booking prompt for hotelBooking, flightBooking, foodDelivery
+                title = sub.get('title', '').lower()
+                desc = sub.get('description', '').lower()
+                if agent_type in ["hotelbooking", "flightbooking", "fooddelivery"]:
+                    if any(k in title or k in desc for k in ["price", "cost", "rate"]):
+                        test_prompt = (
+                            f"Test the price extraction for '{sub.get('title')}' on '{request.site_url}'. "
+                            f"Description: '{sub.get('description')}'. "
+                            "Interact with the page, find the price and agent name, and return a JSON: "
+                            "{'price': <price>, 'agent_name': <hotel/flight/food name>, 'approved': true/false}")
+                    else:
+                        test_prompt = (
+                            f"Test the booking functionality for '{sub.get('title')}' on '{request.site_url}'. "
+                            f"Description: '{sub.get('description')}'. "
+                            "Interact with the page, perform a booking, and return a JSON: "
+                            "{'confirmation_number': <confirmation_number>, 'agent_name': <hotel/flight/food name>, 'approved': true/false}" )
+                else:
+                    test_prompt = (
+                        f"Test the booking functionality for '{sub.get('title')}' on '{request.site_url}'. "
+                        f"Description: '{sub.get('description')}'. "
+                        "Interact with the page, perform a booking, and return a JSON: "
+                        "{'confirmation_number': <confirmation_number>, 'agent_name': <hotel/flight/food name>, 'approved': true/false}" )
                 agent = await setup_agent(browser, context, test_prompt, session_id)
                 try:
                     result = await agent.run(max_steps=10)
                     output = result.model_outputs()
-                    # Convert the agent output to a serializable structure
                     output = to_serializable(output)
-                    
-                    # Try to extract "approved" if output is a dict
                     approved = None
                     if isinstance(output, dict):
                         approved = output.get("approved")
-                    
-                    # If not available, handle list or string outputs heuristically
-                    if approved is None:
-                        if isinstance(output, list):
-                            # Join list elements into a string
-                            combined = " ".join(str(item) for item in output)
-                        elif isinstance(output, str):
-                            combined = output
-                        else:
-                            combined = str(output)
-                        # A simple heuristic: if the output text mentions 'success' or 'working correctly', mark as approved
-                        if "success" in combined.lower() or "working correctly" in combined.lower():
-                            approved = True
-                        else:
-                            approved = False
                 except Exception as e:
                     logging.error(f"Error testing submodule {sub.get('title')}: {e}")
                     approved = False
-
+                    output = {}
                 sub_updated = sub.copy()
                 sub_updated["approved"] = approved
+                if isinstance(output, dict):
+                    if "confirmation_number" in output:
+                        sub_updated["confirmation_number"] = output["confirmation_number"]
+                    if "agent_name" in output:
+                        sub_updated["agent_name"] = output["agent_name"]
+                    if "price" in output:
+                        sub_updated["price"] = output["price"]
                 updated_submodules.append(sub_updated)
             module_updated = module.copy()
             module_updated["submodules"] = updated_submodules

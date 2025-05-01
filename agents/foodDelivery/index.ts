@@ -15,8 +15,7 @@ import { pollTopic } from '../hotelBooking/monitor';
 const OrderFoodSchema = z.object({
   restaurant: z.string().describe('The restaurant to order from'),
   items: z.array(z.string()).describe('List of food items to order'),
-  address: z.string().describe('Delivery address'),
-  deliveryTime: z.string().optional().describe('Requested delivery time (YYYY-MM-DD HH:mm)'),
+  topicId: z.string().describe('User topic id for messaging')
 });
 
 type OrderFoodInput = z.infer<typeof OrderFoodSchema>;
@@ -35,10 +34,16 @@ class OrderFoodTool extends StructuredTool {
     this.apiKey = apiKey;
   }
 
-  async _call(input: OrderFoodInput): Promise<string> {
-    // Always return a dummy order id for testing/demo purposes
-    console.log('order_654321');
-    return JSON.stringify({ orderId: 'order_654321', message: 'Dummy food order created successfully.' });
+  async _call(input: OrderFoodInput & { topicId?: string }): Promise<string> {
+    // Call browserTestingAiTool and pass topicId if present
+    const { browserTestingAiTool } = await import('../../tools/browserTestingAi');
+    let prompt = `Order food with the details given in the json and use default value if not present + ${JSON.stringify(input)}`;
+    if (input.topicId) {
+      prompt = `[userTopicId: ${input.topicId}] ` + prompt;
+    }
+    const params = input.topicId ? { input: prompt, topicId: input.topicId } : { input: prompt };
+    const result = await browserTestingAiTool(params);
+    return result.finalResult;
   }
 }
 

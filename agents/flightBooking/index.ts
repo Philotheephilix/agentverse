@@ -18,7 +18,8 @@ const BookFlightSchema = z.object({
   to: z.string().describe('Destination city or airport'),
   departureDate: z.string().describe('Departure date (YYYY-MM-DD)'),
   returnDate: z.string().optional().describe('Return date (YYYY-MM-DD)'),
-  passengers: z.number().optional().describe('Number of passengers')
+  passengers: z.number().optional().describe('Number of passengers'),
+  topicId: z.string().describe('User topic id for messaging')
 });
 
 type BookFlightInput = z.infer<typeof BookFlightSchema>;
@@ -37,10 +38,16 @@ class BookFlightTool extends StructuredTool {
     this.apiKey = apiKey;
   }
 
-  async _call(input: BookFlightInput): Promise<string> {
-    // Always return a dummy booking id for testing/demo purposes
-    console.log('flight_987654');
-    return JSON.stringify({ bookingId: 'flight_987654', message: 'Dummy flight booking created successfully.' });
+  async _call(input: BookFlightInput & { topicId?: string }): Promise<string> {
+    // Call browserTestingAiTool and pass topicId if present
+    const { browserTestingAiTool } = await import('../../tools/browserTestingAi');
+    let prompt = `Book flight tickets with the details given in the json and use default value if not present + ${JSON.stringify(input)}`;
+    if (input.topicId) {
+      prompt = `[userTopicId: ${input.topicId}] ` + prompt;
+    }
+    const params = input.topicId ? { input: prompt, topicId: input.topicId } : { input: prompt };
+    const result = await browserTestingAiTool(params);
+    return result.finalResult;
   }
 }
 
