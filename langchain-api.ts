@@ -1,23 +1,12 @@
-
-
- import dotenv from 'dotenv';
- import express from 'express';
- import cors from 'cors';
- import http from 'http';
- import WebSocket from 'ws';
- import { ChatOpenAI } from 'langchain/chat_models/openai';
- import { initializeAgentExecutorWithOptions } from 'langchain/agents';
- import path from 'path';
- import { fileURLToPath } from 'url';
- 
- // Configure dotenv
-
-dotenv.config();
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-const server = http.createServer(app);
+import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import http from 'http';
+import { WebSocketServer } from 'ws'; // Changed to import WebSocketServer properly
+import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { initializeAgentExecutorWithOptions } from 'langchain/agents';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Interface } from "ethers";
 
 import { 
@@ -26,26 +15,36 @@ import {
     Hbar,
     ContractId,
     AccountId,
-    PrivateKey  } from "@hashgraph/sdk";
+    PrivateKey,
+    TopicMessageQuery  // Added import here instead of requiring later
+} from "@hashgraph/sdk";
   
-  interface Agent {
-    agentName: string;
-    description: string;
-    topicId: string;
-    agentAddress: string;
-  }
+interface Agent {
+  agentName: string;
+  description: string;
+  topicId: string;
+  agentAddress: string;
+}
+
+const setupClient = (): Client => {
+  const client = Client.forTestnet();
+  const myAccountId = AccountId.fromString("0.0.5864744");
+  const myPrivateKey = PrivateKey.fromStringED25519("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
+  client.setOperator(myAccountId, myPrivateKey);
   
-  const setupClient = (): Client => {
-    const client = Client.forTestnet();
-    const myAccountId = AccountId.fromString("0.0.5864744");
-    const myPrivateKey = PrivateKey.fromStringED25519("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
-    client.setOperator(myAccountId, myPrivateKey);
-    
-    return client;
-  };
-  const client = setupClient();
-  const contractId = ContractId.fromString("0.0.5924695");
-  
+  return client;
+};
+
+// Configure dotenv
+dotenv.config();
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+const server = http.createServer(app);
+const client = setupClient();
+const contractId = ContractId.fromString("0.0.5924695");
+
 const iface = new Interface([
   "function getAllAgents() view returns (tuple(string agentName, string description, string topicId, address agentAddress)[])"
 ]);
@@ -77,53 +76,50 @@ async function getAllAgents(): Promise<Agent[]> {
     console.error("Failed to decode agents:", err);
     return [];
   }
-
 }
 
 // --- WebSocket Topic Listener Route ---
-const wss = new WebSocket.Server({ noServer: true });
+const wss = new WebSocketServer({ noServer: true }); // Fixed constructor
 
-wss.on('connection', (ws: { on: (arg0: string, arg1: { (message: any): void; (): void; }) => void; send: (arg0: string) => void; }) => {
+wss.on('connection', (ws) => {
     let subscription: any = null;
-    ws.on('message', (message?: { toString: () => string; }) => {
+    ws.on('message', (message) => {
         try {
-            const data = JSON.parse(message?.toString() || "");
+            const data = JSON.parse(message.toString());
             if (data.topicId) {
-                const { Client, TopicMessageQuery, AccountId, PrivateKey } = require("@hashgraph/sdk");
                 const MY_ACCOUNT_ID = AccountId.fromString(process.env.MY_ACCOUNT_ID || "0.0.5864744");
                 const MY_PRIVATE_KEY = PrivateKey.fromStringED25519(process.env.MY_PRIVATE_KEY || "302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
-                const client = Client.forTestnet();
-                client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
+                const wsClient = Client.forTestnet();
+                wsClient.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
                 subscription = new TopicMessageQuery()
                     .setTopicId(data.topicId)
                     .setStartTime(new Date(Date.now() - 10 * 1000))
                     .subscribe(
-                        client,
-                        (error?: any) => {
+                        wsClient,
+                        (error) => {
                             if (error) {
                                 ws.send(JSON.stringify({ error: error.message }));
                             }
                         },
-                        (msg: { contents: any; sequenceNumber: any; }) => {
+                        (msg) => {
                             const content = Buffer.from(msg.contents).toString("utf-8");
                             ws.send(JSON.stringify({ content }));
                         }
                     );
-                //{"sequenceNumber":{"low":379,"high":0,"unsigned":true},"content":"Analysing for the best Agent for the task..."}▋
                 ws.send(JSON.stringify({ content: `Subscribed to topic ${data.topicId}` }));
             }
-        } catch (err) {
-            ws.send(JSON.stringify({ error: err }));
-    }
-  });
-  ws.on('close', () => {
-    if (subscription) subscription.unsubscribe();
-  });
+        } catch (err: any) {
+            ws.send(JSON.stringify({ error: err.message || String(err) }));
+        }
+    });
+    ws.on('close', () => {
+        if (subscription) subscription.unsubscribe();
+    });
 });
 
-server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; }, head: any) => {
+server.on('upgrade', (request, socket, head) => {
   if (request.url === '/ws-topic-listen') {
-    wss.handleUpgrade(request, socket, head, (ws: any) => {
+    wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
   } else {
@@ -131,11 +127,42 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
   }
 });
 
+// Load tools
+import { fileURLToPath as fileURLToPathFn } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const echoTool = await import(path.join(__dirname, 'tools/echo.js')).then(m => m.default || m);
+const createTokenTool = await import(path.join(__dirname, 'tools/token.js')).then(m => m.default || m);
+const createTopicTool = await import(path.join(__dirname, 'tools/topic/create.js')).then(m => m.default || m);
+const deleteTopicTool = await import(path.join(__dirname, 'tools/topic/delete.js')).then(m => m.default || m);
+const submitTopicMessageTool = await import(path.join(__dirname, 'tools/topic/submit.js')).then(m => m.default || m);
+const listTopicMessagesTool = await import(path.join(__dirname, 'tools/topic/list.js')).then(m => m.default || m);
+const mintNftTool = await import(path.join(__dirname, 'tools/mintNft.js')).then(m => m.default || m);
+const createAgentTool = await import(path.join(__dirname, 'tools/agent/create.js')).then(m => m.default || m);
+const listenAgentTool = await import(path.join(__dirname, 'tools/agent/listen.js')).then(m => m.default || m);
+
+// For LangChain compatibility, import DynamicTool properly
+import { DynamicTool } from 'langchain/tools';
+
+function assertTool(tool: any, label: string) {
+  if (!tool) throw new Error(`${label} is undefined or not exported correctly`);
+  if (typeof tool.name !== 'string') throw new Error(`${label} is missing a string 'name' property`);
+  // Optional: Log tool for debugging
+  console.log(`${label} loaded:`, tool.name);
+}
+
+// Agent executor with all tools
+let executor: any;
+
+// Initialize agents and tools
 (async () => {
   try {
-    const { HotelBookingPlugin, SearchHotelRoomsTool } = require('./agents/hotelBooking/index.ts');
-    const { FoodDeliveryPlugin, OrderFoodTool } = require('./agents/foodDelivery/index.ts');
-    const { FlightBookingPlugin, BookFlightTool } = require('./agents/flightBooking/index.ts');
+    const { HotelBookingPlugin, SearchHotelRoomsTool } = await import('./agents/hotelBooking/index.js');
+    const { FoodDeliveryPlugin, OrderFoodTool } = await import('./agents/foodDelivery/index.js');
+    const { FlightBookingPlugin, BookFlightTool } = await import('./agents/flightBooking/index.js');
 
     // Initialize HotelBooking agent
     const hotelBooking = new HotelBookingPlugin();
@@ -162,6 +189,7 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
     assertTool(deleteTopicTool, 'deleteTopicTool');
     assertTool(submitTopicMessageTool, 'submitTopicMessageTool');
     assertTool(listTopicMessagesTool, 'listTopicMessagesTool');
+    
     const echoDynamic = new DynamicTool(echoTool);
     const createTokenDynamic = new DynamicTool(createTokenTool);
     const createTopicDynamic = new DynamicTool(createTopicTool);
@@ -202,46 +230,16 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
       }
     );
   } catch (err) {
-    console.error('Failed to initialize HotelBooking agent:', err);
+    console.error('Failed to initialize agents:', err);
     process.exit(1);
   }
 })();
 
-// Load tools
-const echoTool = require(path.join(__dirname, 'tools/echo'));
-const createTokenTool = require(path.join(__dirname, 'tools/token'));
-const createTopicTool = require(path.join(__dirname, 'tools/topic/create'));
-const deleteTopicTool = require(path.join(__dirname, 'tools/topic/delete'));
-const submitTopicMessageTool = require(path.join(__dirname, 'tools/topic/submit'));
-const listTopicMessagesTool = require(path.join(__dirname, 'tools/topic/list'));
-const mintNftTool = require(path.join(__dirname, 'tools/mintNft'));
-const createAgentTool = require(path.join(__dirname, 'tools/agent/create'));
-const listenAgentTool = require(path.join(__dirname, 'tools/agent/listen'));
-// For LangChain compatibility, wrap CommonJS exports as DynamicTool if needed
-const { DynamicTool } = require('langchain/tools');
-function assertTool(tool: any, label: string) {
-  if (!tool) throw new Error(`${label} is undefined or not exported correctly`);
-  if (typeof tool.name !== 'string') throw new Error(`${label} is missing a string 'name' property`);
-  // Optional: Log tool for debugging
-  console.log(`${label} loaded:`, tool.name);
-}
-
-assertTool(echoTool, 'echoTool');
-assertTool(createTokenTool, 'createTokenTool');
-assertTool(createTopicTool, 'createTopicTool');
-assertTool(deleteTopicTool, 'deleteTopicTool');
-assertTool(submitTopicMessageTool, 'submitTopicMessageTool');
-assertTool(listTopicMessagesTool, 'listTopicMessagesTool');
-
-// Agent executor with all tools
-let executor: any;
-
 // API endpoint for prompt analysis and tool invocation
 // To create a token, use a prompt like:
 // "Create a token with name MyToken, symbol MTK, supply 1000 using accountId 0.0.xxxx and privateKey ..."
-app.post('/api/ask', async (req: any, res: any) => {
+app.post('/api/ask', async (req, res) => {
   try {
-    
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
     if (!executor) return res.status(503).json({ error: 'Agent not ready' });
@@ -255,28 +253,24 @@ app.post('/api/ask', async (req: any, res: any) => {
       }
     }
     res.json({ output });
-  } catch (err) {
-    // TS18046: 'err' is of type 'unknown'.
-    if (err && typeof err === 'object' && 'message' in err) {
-      res.status(500).json({ error: (err as any).message });
-    } else {
-      res.status(500).json({ error: String(err) });
-    }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || String(err) });
   }
 });
 
-app.post('/api/analyse', async (req: any, res: any) => {
+app.post('/api/analyse', async (req, res) => {
   try {
-    let { prompt,userTopicId } = req.body;
+    let { prompt, userTopicId } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt required' });
-    if (!userTopicId) return res.status(400).json({ error: 'User topicId required' })
-      else{
-        const toolInput = {
-          topicId: userTopicId,
-          message: `Analysing for the best Agent for the task...`
-        };
-        await submitTopicMessageTool.func(toolInput);
-      }
+    if (!userTopicId) return res.status(400).json({ error: 'User topicId required' });
+    else {
+      const toolInput = {
+        topicId: userTopicId,
+        message: `Analysing for the best Agent for the task...`
+      };
+      await submitTopicMessageTool.func(toolInput);
+    }
+    
     const agentsFromContract = await getAllAgents();
     console.log(agentsFromContract);
     if (!executor) return res.status(503).json({ error: 'Agent not ready' });
@@ -284,17 +278,17 @@ app.post('/api/analyse', async (req: any, res: any) => {
     const agentSelectionPrompt = `Given the following user prompt and a list of agents, select the best agent for the task. Return only the topicId of the best agent as a string.\n\nUser prompt: ${prompt}\n\nAgents: ${JSON.stringify(agentsFromContract, null, 2)} only return topicId without quotes and nothing else`;
     const selectionResult = await executor.call({ input: agentSelectionPrompt });
     let selectedTopicId = selectionResult?.output?.trim() || selectionResult?.text?.trim();
+    
     if (selectedTopicId && selectedTopicId.startsWith('{')) {
       try {
         const parsed = JSON.parse(selectedTopicId);
         selectedTopicId = parsed.topicId || parsed.id || '';
       } catch {}
     }
-    selectedTopicId.replace("\"", "").replace("\"", "");
-
-    selectedTopicId = selectedTopicId.trim();
-    selectedTopicId.toString()
+    
+    selectedTopicId = selectedTopicId.replace(/"/g, "").trim();
     console.log("Selected topicId: " + selectedTopicId);
+    
     const chosenAgent = agentsFromContract.find((a: any) => a.topicId === selectedTopicId);
     if (chosenAgent) {
       const toolInput = {
@@ -302,30 +296,27 @@ app.post('/api/analyse', async (req: any, res: any) => {
         message: `Selected Agent ${chosenAgent.agentName}`
       };
       const result = await submitTopicMessageTool.func(toolInput);
-      console.log(result)
-          // Call the submit_topic_message tool directly with correct input format to the agents topicid
-    const toolInput11 = {
-      topicId: chosenAgent.topicId,
-      message: `{"User": "${userTopicId}", "prompt": "${prompt}"}`
-    };
-    const result1 = await submitTopicMessageTool.func(toolInput11);
-    console.log(result1)
-    const responseWithTopic = {
-      ...result,
-      topicId: chosenAgent.topicId,
-      agentName: chosenAgent.agentName
-    };
-    res.json(responseWithTopic);
-    }
-
-
-
-  } catch (err) {
-    if (err && typeof err === 'object' && 'message' in err) {
-      res.status(500).json({ error: (err as any).message });
+      console.log(result);
+      
+      // Call the submit_topic_message tool directly with correct input format to the agents topicid
+      const toolInput11 = {
+        topicId: chosenAgent.topicId,
+        message: `{"User": "${userTopicId}", "prompt": "${prompt}"}`
+      };
+      const result1 = await submitTopicMessageTool.func(toolInput11);
+      console.log(result1);
+      
+      const responseWithTopic = {
+        ...result,
+        topicId: chosenAgent.topicId,
+        agentName: chosenAgent.agentName
+      };
+      res.json(responseWithTopic);
     } else {
-      res.status(500).json({ error: String(err) });
+      res.status(404).json({ error: 'No matching agent found for selected topicId' });
     }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || String(err) });
   }
 });
 
