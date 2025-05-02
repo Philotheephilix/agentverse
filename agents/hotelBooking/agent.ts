@@ -1,7 +1,6 @@
 import { StructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { AgentConnection, processMessage } from '../agent-common.js';
-import { Logger } from '@hashgraphonline/standards-sdk';
 
 // Hotel booking tool schema
 const BookHotelSchema = z.object({
@@ -54,13 +53,6 @@ class BookHotelTool extends StructuredTool {
   }
 
   async _call(input: BookHotelInput): Promise<string> {
-    const logger = Logger.getInstance({
-      module: 'HotelBookingTool',
-      level: 'debug',
-    });
-    
-    logger.info(`Booking hotel in ${input.city} from ${input.checkin} to ${input.checkout}`);
-    
     // Find hotels in the requested city
     const cityHotels = HOTELS.filter(hotel => 
       hotel.city.toLowerCase() === input.city.toLowerCase());
@@ -121,7 +113,6 @@ Total: $${totalPrice}
 Thank you for booking with HotelBooking Agent!`
         });
       } catch (error) {
-        logger.error('Error sending booking confirmation:', error);
       }
     }
     
@@ -136,14 +127,8 @@ export async function processHotelMessage(
   senderName: string,
   message: any
 ): Promise<void> {
-  const logger = Logger.getInstance({
-    module: 'HotelBookingAgent',
-    level: 'debug',
-  });
-  
   // Extract message content
   const content = message.content || message.data || JSON.stringify(message);
-  logger.info(`Processing hotel booking message: ${content}`);
   
   try {
     // Simple NLP to detect booking intent
@@ -191,7 +176,6 @@ export async function processHotelMessage(
         connectionId: connectionTopicId
       });
       
-      logger.info(`Hotel booking result: ${result}`);
       
     } else {
       // Send a general response
@@ -207,7 +191,6 @@ For example, you can say: "I'd like to book a hotel in New York from 2023-12-10 
       }
     }
   } catch (error) {
-    logger.error(`Error processing hotel booking message:`, error);
     
     // Send error message
     if (connection.tools.sendMessageToConnectionTool) {

@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 import * as dotenv from 'dotenv';
-import { AIAgentCapability } from '@hashgraphonline/standards-sdk';
-import { initializeHCS10Client } from './lib/init';
+import { initializeHCS10Client } from './lib/init.js';
 import readline from 'readline';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -89,19 +88,6 @@ async function registerNewAgent() {
     
     // 4. Agent capabilities
     displayCapabilities();
-    const capabilitiesInput = await question('Enter capability numbers (comma-separated, default: 0): ');
-    
-    let capabilities: number[] = [AIAgentCapability.TEXT_GENERATION];
-    if (capabilitiesInput.trim()) {
-      capabilities = capabilitiesInput
-        .split(',')
-        .map(n => parseInt(n.trim()))
-        .filter(n => !isNaN(n) && n >= 0 && n <= 18);
-      
-      if (capabilities.length === 0) {
-        capabilities = [AIAgentCapability.TEXT_GENERATION];
-      }
-    }
     
     // 5. Profile picture (optional)
     const profilePicture = await question('Enter profile picture path or URL (optional): ');
@@ -145,7 +131,6 @@ async function registerNewAgent() {
     const registrationParams: any = {
       name: agentName,
       type: agentType,
-      capabilities,
       setAsCurrent: true,
       persistence: {
         prefix: envPrefix.trim() || 'AGENT'
