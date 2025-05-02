@@ -10,6 +10,9 @@ import PixelButton from "../components/pixel-button"
 import { client, walletClient } from "@/lib/Client"
 import { AgentRegistryContractAddress, AgentRegistryContractABI } from "@/lib/constant"
 
+import * as dotenv from 'dotenv';
+dotenv.config(); 
+
 export default function RegisterPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -27,6 +30,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     setLoading(true);
     e.preventDefault();
+  
     const agent = await fetch("/api/agent/create", {
       method: "POST",
       headers: {
@@ -37,15 +41,6 @@ export default function RegisterPage() {
     const res = await agent.json();
     const agentMetadata = res.agentMetadata;
 
-    console.log(agentMetadata);
-    console.log({
-      accountId: agentMetadata.accountId,
-      description: agentMetadata.description,
-      name: agentMetadata.name,
-      topicId: agentMetadata.topicId,
-      type: agentMetadata.type,
-    });
-    console.log(typeof agentMetadata.topicId);
     const [address] = await walletClient?.getAddresses() || [];
 
     const tx = await walletClient?.writeContract({

@@ -4,8 +4,9 @@ import {
   TopicCreateTransaction,
   Hbar,
 } from "@hashgraph/sdk";
+import { HCS10Client ,StandardNetworkType} from "@hashgraphonline/standards-agent-kit";
 
-import { MY_ACCOUNT_ID, MY_PRIVATE_KEY } from "@/lib/constant";
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,24 +20,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const client = Client.forTestnet();
-    client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
+ 
 
-    const createTopicTx = await new TopicCreateTransaction()
-      .setSubmitKey(MY_PRIVATE_KEY)
-      .setMaxTransactionFee(new Hbar(2))
-      .execute(client);
+   const operatorId: string = process.env.HEDERA_OPERATOR_ID!;
+       const operatorPrivateKey: string = process.env.HEDERA_PRIVATE_KEY!;
+       const network: StandardNetworkType =
+         (process.env.HEDERA_NETWORK as StandardNetworkType) || 'testnet';
+   
+       // Basic Initialization
+       const hcs10Client = new HCS10Client(operatorId, operatorPrivateKey, network);
+       console.log(
+         `Client Initialized: Operator ${hcs10Client.getOperatorId()}, Network ${hcs10Client.getNetwork()}`
+       );
 
-    const receipt = await createTopicTx.getReceipt(client);
-    console.log(receipt);
-    const agentTopicId = receipt.topicId!.toString();
-    console.log(agentTopicId);  
+       try {
+        const registrationResult = await hcs10Client.createAndRegisterAgent({
+          name: name as string,
+          description: description as string,
+          capabilities: [0],  
+        });
+        console.log('Registration Successful:', registrationResult.metadata);
+
+  
+      } catch (error) {
+        console.error('Registration Failed:', error);
+      } 
     const agentMetadata: Record<string, unknown> = {
       type: "agent",
-      name,
-      description,
-      accountId: MY_ACCOUNT_ID.toString(),
-      topicId: agentTopicId,
+      name: name as string,
+      description: description as string,
+      accountId: operatorId,
+      topicId: operatorId,
     };
     console.log(agentMetadata);
 
