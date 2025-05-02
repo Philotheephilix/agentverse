@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  Client,
-  TopicCreateTransaction,
-  Hbar,
-} from "@hashgraph/sdk";
 import { HCS10Client ,StandardNetworkType} from "@hashgraphonline/standards-agent-kit";
 
 
@@ -33,8 +28,9 @@ export async function POST(req: NextRequest) {
          `Client Initialized: Operator ${hcs10Client.getOperatorId()}, Network ${hcs10Client.getNetwork()}`
        );
 
+       let registrationResult;
        try {
-        const registrationResult = await hcs10Client.createAndRegisterAgent({
+        registrationResult = await hcs10Client.createAndRegisterAgent({
           name: name as string,
           description: description as string,
           capabilities: [0],  
@@ -44,7 +40,12 @@ export async function POST(req: NextRequest) {
   
       } catch (error) {
         console.error('Registration Failed:', error);
+        throw error;
       } 
+    if (!registrationResult?.metadata) {
+      throw new Error('Registration failed: metadata is undefined');
+    }
+
     const agentMetadata: Record<string, unknown> = {
       type: "agent",
       name: name as string,
