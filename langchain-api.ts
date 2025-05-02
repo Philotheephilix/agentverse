@@ -1,11 +1,17 @@
-import dotenv from 'dotenv';
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const WebSocket = require('ws');
-const { ChatOpenAI } = require('langchain/chat_models/openai');
-const { initializeAgentExecutorWithOptions } = require('langchain/agents');
-const path = require('path');
+
+ import { initializeHCS10Agents } from './agents/initializeHCS10Agents.js';
+ import dotenv from 'dotenv';
+ import express from 'express';
+ import cors from 'cors';
+ import http from 'http';
+ import WebSocket from 'ws';
+ import { ChatOpenAI } from 'langchain/chat_models/openai';
+ import { initializeAgentExecutorWithOptions } from 'langchain/agents';
+ import path from 'path';
+ import { fileURLToPath } from 'url';
+ 
+ // Configure dotenv
+
 dotenv.config();
 const app = express();
 app.use(express.json());
