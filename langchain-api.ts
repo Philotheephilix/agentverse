@@ -1,5 +1,5 @@
 
- import { initializeHCS10Agents } from './agents/initializeHCS10Agents.js';
+
  import dotenv from 'dotenv';
  import express from 'express';
  import cors from 'cors';
