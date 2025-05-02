@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
       type: "agent",
       name: name as string,
       description: description as string,
-      accountId: operatorId,
-      topicId: operatorId,
+      accountId: registrationResult.metadata.accountId,
+      topicId: registrationResult.metadata.inboundTopicId,
     };
     console.log(agentMetadata);
 
