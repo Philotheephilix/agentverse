@@ -1,22 +1,77 @@
-import { getAllAgents } from './contracts/getAllAgents.js';
-import { initializeHCS10Agents } from './agents/initializeHCS10Agents.js';
-import dotenv from 'dotenv';
-import express from 'express';
-import cors from 'cors';
-import http from 'http';
-import WebSocket from 'ws';
-import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { initializeAgentExecutorWithOptions } from 'langchain/agents';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Configure dotenv
-dotenv.config();
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const http = require('http');
+const WebSocket = require('ws');
+const { ChatOpenAI } = require('langchain/chat_models/openai');
+const { initializeAgentExecutorWithOptions } = require('langchain/agents');
+const path = require('path');
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 const server = http.createServer(app);
+import { Interface } from "ethers";
+
+import { 
+    Client, 
+    ContractCallQuery, 
+    Hbar,
+    ContractId,
+    AccountId,
+    PrivateKey  } from "@hashgraph/sdk";
+  
+  interface Agent {
+    agentName: string;
+    description: string;
+    topicId: string;
+    agentAddress: string;
+  }
+  
+  const setupClient = (): Client => {
+    const client = Client.forTestnet();
+    const myAccountId = AccountId.fromString("0.0.5864744");
+    const myPrivateKey = PrivateKey.fromStringED25519("302e020100300506032b657004220420d04f46918ebce20abe26f7d34e5018ac2ba8aa7ffacf9f817656789b36f76207");
+    client.setOperator(myAccountId, myPrivateKey);
+    
+    return client;
+  };
+  const client = setupClient();
+  const contractId = ContractId.fromString("0.0.5924695");
+  
+const iface = new Interface([
+  "function getAllAgents() view returns (tuple(string agentName, string description, string topicId, address agentAddress)[])"
+]);
+
+async function getAllAgents(): Promise<Agent[]> {
+  const query = new ContractCallQuery()
+    .setGas(300000)
+    .setContractId(contractId)
+    .setFunction("getAllAgents")
+    .setQueryPayment(new Hbar(2));
+
+  const result = await query.execute(client);
+  const rawBytes = result.asBytes();
+
+  try {
+    const decoded = iface.decodeFunctionResult("getAllAgents", rawBytes);
+    const agentTuples = decoded[0];
+
+    const agents: Agent[] = agentTuples.map((agent: any) => ({
+      agentName: agent.agentName,
+      description: agent.description,
+      topicId: agent.topicId,
+      agentAddress: agent.agentAddress
+    }));
+
+    console.log("Decoded agents:", agents);
+    return agents;
+  } catch (err) {
+    console.error("Failed to decode agents:", err);
+    return [];
+  }
+
+}
 
 // --- WebSocket Topic Listener Route ---
 const wss = new WebSocket.Server({ noServer: true });
@@ -34,7 +89,7 @@ wss.on('connection', (ws: { on: (arg0: string, arg1: { (message: any): void; ():
                 client.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
                 subscription = new TopicMessageQuery()
                     .setTopicId(data.topicId)
-                    .setStartTime(new Date())
+                    .setStartTime(new Date(Date.now() - 10 * 1000))
                     .subscribe(
                         client,
                         (error?: any) => {
@@ -71,17 +126,9 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
 
 (async () => {
   try {
-    // Import plugins using dynamic imports for ESM compatibility
-    const hotelBookingModule = await import('./agents/hotelBooking/index.js');
-    const foodDeliveryModule = await import('./agents/foodDelivery/index.js');
-    const flightBookingModule = await import('./agents/flightBooking/index.js');
-    
-    const HotelBookingPlugin = hotelBookingModule.HotelBookingPlugin;
-    const SearchHotelRoomsTool = hotelBookingModule.SearchHotelRoomsTool;
-    const FoodDeliveryPlugin = foodDeliveryModule.FoodDeliveryPlugin;
-    const OrderFoodTool = foodDeliveryModule.OrderFoodTool;
-    const FlightBookingPlugin = flightBookingModule.FlightBookingPlugin;
-    const BookFlightTool = flightBookingModule.BookFlightTool;
+    const { HotelBookingPlugin, SearchHotelRoomsTool } = require('./agents/hotelBooking/index.ts');
+    const { FoodDeliveryPlugin, OrderFoodTool } = require('./agents/foodDelivery/index.ts');
+    const { FlightBookingPlugin, BookFlightTool } = require('./agents/flightBooking/index.ts');
 
     // Initialize HotelBooking agent
     const hotelBooking = new HotelBookingPlugin();
@@ -100,15 +147,6 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
     await flightBooking.onLoad({ registerTool: () => {} });
     console.log('FlightBooking agent initialized.');
     const flightBookingTool = new BookFlightTool();
-    
-    // Initialize HCS10-based agents (hotel, food, flight)
-    console.log('Initializing HCS10 agents with auto-connect functionality...');
-    try {
-      await initializeHCS10Agents();
-      console.log('✅ HCS10 agents initialized successfully!');
-    } catch (error) {
-      console.error('❌ Error initializing HCS10 agents:', error);
-    }
 
     // Assert and wrap all tools as DynamicTool
     assertTool(echoTool, 'echoTool');
@@ -162,22 +200,18 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
   }
 })();
 
-// Get directory name for __dirname equivalent in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load tools using dynamic imports for ESM compatibility
-const echoTool = (await import(path.join(__dirname, 'tools/echo/index.js'))).default;
-const createTokenTool = (await import(path.join(__dirname, 'tools/token/index.js'))).default;
-const createTopicTool = (await import(path.join(__dirname, 'tools/topic/create/index.js'))).default;
-const deleteTopicTool = (await import(path.join(__dirname, 'tools/topic/delete/index.js'))).default;
-const submitTopicMessageTool = (await import(path.join(__dirname, 'tools/topic/submit/index.js'))).default;
-const listTopicMessagesTool = (await import(path.join(__dirname, 'tools/topic/list/index.js'))).default;
-const mintNftTool = (await import(path.join(__dirname, 'tools/mintNft/index.js'))).default;
-const createAgentTool = (await import(path.join(__dirname, 'tools/agent/create/index.js'))).default;
-const listenAgentTool = (await import(path.join(__dirname, 'tools/agent/listen/index.js'))).default;
-// For LangChain compatibility, import DynamicTool
-import { DynamicTool } from 'langchain/tools';
+// Load tools
+const echoTool = require(path.join(__dirname, 'tools/echo'));
+const createTokenTool = require(path.join(__dirname, 'tools/token'));
+const createTopicTool = require(path.join(__dirname, 'tools/topic/create'));
+const deleteTopicTool = require(path.join(__dirname, 'tools/topic/delete'));
+const submitTopicMessageTool = require(path.join(__dirname, 'tools/topic/submit'));
+const listTopicMessagesTool = require(path.join(__dirname, 'tools/topic/list'));
+const mintNftTool = require(path.join(__dirname, 'tools/mintNft'));
+const createAgentTool = require(path.join(__dirname, 'tools/agent/create'));
+const listenAgentTool = require(path.join(__dirname, 'tools/agent/listen'));
+// For LangChain compatibility, wrap CommonJS exports as DynamicTool if needed
+const { DynamicTool } = require('langchain/tools');
 function assertTool(tool: any, label: string) {
   if (!tool) throw new Error(`${label} is undefined or not exported correctly`);
   if (typeof tool.name !== 'string') throw new Error(`${label} is missing a string 'name' property`);
