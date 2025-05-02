@@ -1,12 +1,17 @@
-import { getAllAgents } from './contracts/getAllAgents';
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const WebSocket = require('ws');
-const { ChatOpenAI } = require('langchain/chat_models/openai');
-const { initializeAgentExecutorWithOptions } = require('langchain/agents');
-const path = require('path');
+import { getAllAgents } from './contracts/getAllAgents.js';
+import { initializeHCS10Agents } from './agents/initializeHCS10Agents.js';
+import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import http from 'http';
+import WebSocket from 'ws';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { initializeAgentExecutorWithOptions } from 'langchain/agents';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Configure dotenv
+dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -66,9 +71,17 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
 
 (async () => {
   try {
-    const { HotelBookingPlugin, SearchHotelRoomsTool } = require('./agents/hotelBooking/index.ts');
-    const { FoodDeliveryPlugin, OrderFoodTool } = require('./agents/foodDelivery/index.ts');
-    const { FlightBookingPlugin, BookFlightTool } = require('./agents/flightBooking/index.ts');
+    // Import plugins using dynamic imports for ESM compatibility
+    const hotelBookingModule = await import('./agents/hotelBooking/index.js');
+    const foodDeliveryModule = await import('./agents/foodDelivery/index.js');
+    const flightBookingModule = await import('./agents/flightBooking/index.js');
+    
+    const HotelBookingPlugin = hotelBookingModule.HotelBookingPlugin;
+    const SearchHotelRoomsTool = hotelBookingModule.SearchHotelRoomsTool;
+    const FoodDeliveryPlugin = foodDeliveryModule.FoodDeliveryPlugin;
+    const OrderFoodTool = foodDeliveryModule.OrderFoodTool;
+    const FlightBookingPlugin = flightBookingModule.FlightBookingPlugin;
+    const BookFlightTool = flightBookingModule.BookFlightTool;
 
     // Initialize HotelBooking agent
     const hotelBooking = new HotelBookingPlugin();
@@ -87,6 +100,15 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
     await flightBooking.onLoad({ registerTool: () => {} });
     console.log('FlightBooking agent initialized.');
     const flightBookingTool = new BookFlightTool();
+    
+    // Initialize HCS10-based agents (hotel, food, flight)
+    console.log('Initializing HCS10 agents with auto-connect functionality...');
+    try {
+      await initializeHCS10Agents();
+      console.log('✅ HCS10 agents initialized successfully!');
+    } catch (error) {
+      console.error('❌ Error initializing HCS10 agents:', error);
+    }
 
     // Assert and wrap all tools as DynamicTool
     assertTool(echoTool, 'echoTool');
@@ -140,18 +162,22 @@ server.on('upgrade', (request: { url: string; }, socket: { destroy: () => void; 
   }
 })();
 
-// Load tools
-const echoTool = require(path.join(__dirname, 'tools/echo'));
-const createTokenTool = require(path.join(__dirname, 'tools/token'));
-const createTopicTool = require(path.join(__dirname, 'tools/topic/create'));
-const deleteTopicTool = require(path.join(__dirname, 'tools/topic/delete'));
-const submitTopicMessageTool = require(path.join(__dirname, 'tools/topic/submit'));
-const listTopicMessagesTool = require(path.join(__dirname, 'tools/topic/list'));
-const mintNftTool = require(path.join(__dirname, 'tools/mintNft'));
-const createAgentTool = require(path.join(__dirname, 'tools/agent/create'));
-const listenAgentTool = require(path.join(__dirname, 'tools/agent/listen'));
-// For LangChain compatibility, wrap CommonJS exports as DynamicTool if needed
-const { DynamicTool } = require('langchain/tools');
+// Get directory name for __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load tools using dynamic imports for ESM compatibility
+const echoTool = (await import(path.join(__dirname, 'tools/echo/index.js'))).default;
+const createTokenTool = (await import(path.join(__dirname, 'tools/token/index.js'))).default;
+const createTopicTool = (await import(path.join(__dirname, 'tools/topic/create/index.js'))).default;
+const deleteTopicTool = (await import(path.join(__dirname, 'tools/topic/delete/index.js'))).default;
+const submitTopicMessageTool = (await import(path.join(__dirname, 'tools/topic/submit/index.js'))).default;
+const listTopicMessagesTool = (await import(path.join(__dirname, 'tools/topic/list/index.js'))).default;
+const mintNftTool = (await import(path.join(__dirname, 'tools/mintNft/index.js'))).default;
+const createAgentTool = (await import(path.join(__dirname, 'tools/agent/create/index.js'))).default;
+const listenAgentTool = (await import(path.join(__dirname, 'tools/agent/listen/index.js'))).default;
+// For LangChain compatibility, import DynamicTool
+import { DynamicTool } from 'langchain/tools';
 function assertTool(tool: any, label: string) {
   if (!tool) throw new Error(`${label} is undefined or not exported correctly`);
   if (typeof tool.name !== 'string') throw new Error(`${label} is missing a string 'name' property`);
