@@ -1,4 +1,4 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -6,6 +6,7 @@ const WebSocket = require('ws');
 const { ChatOpenAI } = require('langchain/chat_models/openai');
 const { initializeAgentExecutorWithOptions } = require('langchain/agents');
 const path = require('path');
+dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
