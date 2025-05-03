@@ -104,8 +104,9 @@ export default function GamePage() {
     const userTopicId = localStorage.getItem("userTopicId")
 
     try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://agentverse-8rp6.onrender.com';
       // Make API call to the server with proper CORS handling
-      fetch("http://localhost:3000/api/analyse", {
+      fetch(`${apiBaseUrl}/api/analyse`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, userTopicId }),

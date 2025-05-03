@@ -22,9 +22,10 @@ export default function InteractPage() {
     const agentTopicId = localStorage.getItem("agentTopicId")
     const userTopicId = localStorage.getItem("userTopicId")
     
-    const userSocket = new WebSocket(`ws://localhost:3000/ws-topic-listen`);
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'wss://agentverse-8rp6.onrender.com';
+    const userSocket = new WebSocket(`${apiBaseUrl}/ws-topic-listen`);
     let first = true;
-    const agentSocket = new WebSocket('ws://localhost:3000/ws-topic-listen');
+    const agentSocket = new WebSocket(`${apiBaseUrl}/ws-topic-listen`);
     console.log(agentTopicId)
     agentSocket.onopen = () => {
       console.log("WebSocket connection opened");
