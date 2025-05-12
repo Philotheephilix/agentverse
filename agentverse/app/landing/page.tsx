@@ -299,8 +299,8 @@ export default function Component(): JSX.Element {
       if (agent.agentAddress !== "0x0000000000000000000000000000000000000000") {
         localStorage.setItem("userTopicId", agent.topicId);
         // Agent exists, route to AgentVerse
-       // window.location.href = "/agentverse";
-       setShowRegister(true);
+       window.location.href = "/agentverse";
+      // setShowRegister(true);
       } else {
         // Agent doesn't exist
         setShowRegister(true);
