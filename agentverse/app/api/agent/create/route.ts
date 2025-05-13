@@ -82,11 +82,8 @@ export async function POST(req: NextRequest) {
     console.log('Created new job:', jobId);
     
     // Start the agent creation process asynchronously
-    // Use setImmediate to ensure the response is sent before starting the long process
-    setImmediate(() => {
-      createAgent(data, jobId).catch(err => {
-        console.error('Unhandled error in createAgent:', err);
-      });
+    createAgent(data, jobId).catch(err => {
+      console.error('Unhandled error in createAgent:', err);
     });
 
     return NextResponse.json({ jobId }, { status: 202 });

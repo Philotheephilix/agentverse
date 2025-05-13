@@ -16,6 +16,7 @@
     "@rainbow-me/rainbowkit": "^2.2.4",
     "@react-three/drei": "^10.0.7",
     "@react-three/fiber": "^9.1.2",
+    "@vercel/kv": "^1.0.1",
     "excalibur": "^0.30.3",
     "fs": "^0.0.1-security",
     "lucide-react": "^0.503.0",
