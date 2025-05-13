@@ -8,8 +8,15 @@ dotenv.config();
 
 const app = express();
 
+// CORS configuration - allow all
+app.use(cors({
+  origin: '*',
+  methods: '*',
+  allowedHeaders: '*',
+  credentials: true
+}));
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Routes

@@ -48,7 +48,7 @@ export default function RegisterPage() {
   }
 
   const pollJobStatus = async (jobId: string): Promise<AgentMetadata> => {
-    const response = await fetch(`${API_BASE_URL}/api/agent/status?jobId=${jobId}`);
+    const response = await fetch(`https://agentverse-fsvs.vercel.app/api/agent/status?jobId=${jobId}`);
     const data = await response.json() as JobResponse;
 
     if (data.status === 'completed' && data.result?.agentMetadata) {
@@ -69,7 +69,7 @@ export default function RegisterPage() {
 
     try {
       // Start the agent creation process
-      const createResponse = await fetch(`${API_BASE_URL}/api/agent/create`, {
+      const createResponse = await fetch(`https://agentverse-fsvs.vercel.app/api/agent/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
