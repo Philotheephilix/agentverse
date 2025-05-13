@@ -19,11 +19,11 @@ interface Job {
 }
 
 class JobManager {
-  private readonly jobsDir: string;
+  private jobsDir: string;
 
   constructor() {
-    // Use /tmp directory which is writable in Vercel
-    this.jobsDir = path.join('/tmp', 'jobs');
+    // Create jobs directory in the project root
+    this.jobsDir = path.join(process.cwd(), 'jobs');
     if (!fs.existsSync(this.jobsDir)) {
       fs.mkdirSync(this.jobsDir, { recursive: true });
     }
