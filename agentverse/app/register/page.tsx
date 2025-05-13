@@ -13,6 +13,22 @@ import { AgentRegistryContractAddress, AgentRegistryContractABI } from "@/lib/co
 import * as dotenv from 'dotenv';
 dotenv.config(); 
 
+interface AgentMetadata {
+  type: string;
+  name: string;
+  description: string;
+  accountId: string;
+  topicId: string;
+  profilePictureUrl?: string;
+  tools?: unknown[];
+}
+
+interface JobResponse {
+  status: 'pending' | 'completed' | 'failed';
+  result?: { agentMetadata: AgentMetadata };
+  error?: string;
+}
+
 export default function RegisterPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -28,11 +44,11 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const pollJobStatus = async (jobId: string): Promise<any> => {
+  const pollJobStatus = async (jobId: string): Promise<AgentMetadata> => {
     const response = await fetch(`/api/agent/status?jobId=${jobId}`);
-    const data = await response.json();
+    const data = await response.json() as JobResponse;
 
-    if (data.status === 'completed') {
+    if (data.status === 'completed' && data.result?.agentMetadata) {
       return data.result.agentMetadata;
     } else if (data.status === 'failed') {
       throw new Error(data.error || 'Job failed');

@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { HCS10Client, StandardNetworkType } from "@hashgraphonline/standards-agent-kit";
 import { jobManager } from "@/lib/jobManager";
 
-interface RegistrationResult {
-  metadata: {
-    accountId: string;
-    inboundTopicId: string;
-  };
+interface AgentMetadata {
+  type: string;
+  name: string;
+  description: string;
+  accountId: string;
+  topicId: string;
+  profilePictureUrl?: string;
+  tools?: unknown[];
 }
 
 async function createAgent(data: Record<string, unknown>, jobId: string) {
@@ -34,7 +37,7 @@ async function createAgent(data: Record<string, unknown>, jobId: string) {
       throw new Error('Registration failed: metadata is undefined');
     }
 
-    const agentMetadata: Record<string, unknown> = {
+    const agentMetadata: AgentMetadata = {
       type: "agent",
       name: name as string,
       description: description as string,
@@ -42,7 +45,7 @@ async function createAgent(data: Record<string, unknown>, jobId: string) {
       topicId: registrationResult.metadata.inboundTopicId,
     };
 
-    if (profilePictureUrl) agentMetadata.profilePictureUrl = profilePictureUrl;
+    if (profilePictureUrl) agentMetadata.profilePictureUrl = profilePictureUrl as string;
     if (tools && Array.isArray(tools)) agentMetadata.tools = tools;
 
     console.log('Agent creation completed for job:', jobId);
