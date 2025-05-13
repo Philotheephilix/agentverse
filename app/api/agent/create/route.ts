@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HCS10Client, StandardNetworkType } from "@hashgraphonline/standards-agent-kit";
-import { jobManager } from "@/lib/jobManager";
+
+// Global variable to store jobs
+declare global {
+  var jobs: Record<string, {
+    status: 'pending' | 'completed' | 'failed';
+    result?: any;
+    error?: string;
+  }>;
+}
+
+if (!global.jobs) {
+  global.jobs = {};
+}
 
 interface AgentMetadata {
   type: string;
@@ -49,10 +61,16 @@ async function createAgent(data: Record<string, unknown>, jobId: string) {
     if (tools && Array.isArray(tools)) agentMetadata.tools = tools;
 
     console.log('Agent creation completed for job:', jobId);
-    jobManager.completeJob(jobId, { agentMetadata });
+    global.jobs[jobId] = {
+      status: 'completed',
+      result: { agentMetadata }
+    };
   } catch (err) {
     console.error('Error in agent creation for job:', jobId, err);
-    jobManager.failJob(jobId, err instanceof Error ? err.message : 'Unknown error occurred');
+    global.jobs[jobId] = {
+      status: 'failed',
+      error: err instanceof Error ? err.message : 'Unknown error occurred'
+    };
   }
 }
 
@@ -67,11 +85,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const jobId = jobManager.createJob();
-    console.log('Created new job:', jobId);
+    const jobId = Date.now().toString();
+    global.jobs[jobId] = { status: 'pending' };
     
     // Start the agent creation process asynchronously
-    // Use setImmediate to ensure the response is sent before starting the long process
     setImmediate(() => {
       createAgent(data, jobId).catch(err => {
         console.error('Unhandled error in createAgent:', err);
@@ -86,4 +103,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+} 

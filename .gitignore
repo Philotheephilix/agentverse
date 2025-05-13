@@ -1,3 +1,4 @@
 
 /node_modules
 .env
+/agent-express/node_modules

@@ -13,6 +13,9 @@ import { AgentRegistryContractAddress, AgentRegistryContractABI } from "@/lib/co
 import * as dotenv from 'dotenv';
 dotenv.config(); 
 
+// Get the API base URL from environment variable
+const API_BASE_URL = process.env.API_BASE_URL || '';
+
 interface AgentMetadata {
   type: string;
   name: string;
@@ -45,7 +48,7 @@ export default function RegisterPage() {
   }
 
   const pollJobStatus = async (jobId: string): Promise<AgentMetadata> => {
-    const response = await fetch(`/api/agent/status?jobId=${jobId}`);
+    const response = await fetch(`${API_BASE_URL}/api/agent/status?jobId=${jobId}`);
     const data = await response.json() as JobResponse;
 
     if (data.status === 'completed' && data.result?.agentMetadata) {
@@ -66,7 +69,7 @@ export default function RegisterPage() {
 
     try {
       // Start the agent creation process
-      const createResponse = await fetch("/api/agent/create", {
+      const createResponse = await fetch(`${API_BASE_URL}/api/agent/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

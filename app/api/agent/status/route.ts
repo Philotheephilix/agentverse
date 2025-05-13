@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jobManager } from "@/lib/jobManager";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const job = jobManager.getJob(jobId);
+    const job = global.jobs?.[jobId];
     
     if (!job) {
       return NextResponse.json(
