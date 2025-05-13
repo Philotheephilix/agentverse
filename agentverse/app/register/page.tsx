@@ -31,36 +31,56 @@ export default function RegisterPage() {
     setLoading(true);
     e.preventDefault();
   
-    const agent = await fetch("/api/agent/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    })
-    const res = await agent.json();
-    const agentMetadata = res.agentMetadata;
+    const pollForAgent = async () => {
+      const agent = await fetch("/api/agent/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (!agent.ok) {
+        throw new Error('Failed to create agent');
+      }
+      
+      const res = await agent.json();
+      if (res.agentMetadata) {
+        return res.agentMetadata;
+      }
+      
+      // If no metadata yet, wait and try again
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return pollForAgent();
+    };
 
-    const [address] = await walletClient?.getAddresses() || [];
+    try {
+      const agentMetadata = await pollForAgent();
+      const [address] = await walletClient?.getAddresses() || [];
 
-    const tx = await walletClient?.writeContract({
-      address: AgentRegistryContractAddress,
-      abi: AgentRegistryContractABI,
-      functionName: 'registerAgent',
-      args: [ agentMetadata.name,
-        agentMetadata.description,
-        agentMetadata.topicId,  // this is a string
-        formData.agentType,     ],
-      account: address,
-    })
+      const tx = await walletClient?.writeContract({
+        address: AgentRegistryContractAddress,
+        abi: AgentRegistryContractABI,
+        functionName: 'registerAgent',
+        args: [ agentMetadata.name,
+          agentMetadata.description,
+          agentMetadata.topicId,  // this is a string
+          formData.agentType,     ],
+        account: address,
+      })
 
-    const receipt = await client.waitForTransactionReceipt({
-      hash: tx!,
-    });
-    localStorage.setItem("userTopicId", agentMetadata.topicId);
-    console.log(receipt);
-    setLoading(false);
-    router.push("/agentverse")
+      const receipt = await client.waitForTransactionReceipt({
+        hash: tx!,
+      });
+      localStorage.setItem("userTopicId", agentMetadata.topicId);
+      console.log(receipt);
+      setLoading(false);
+      router.push("/agentverse")
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      setLoading(false);
+      // You might want to show an error message to the user here
+    }
   }
 
   return (
