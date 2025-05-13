@@ -14,7 +14,6 @@ import * as dotenv from 'dotenv';
 dotenv.config(); 
 
 // Get the API base URL from environment variable
-const API_BASE_URL = process.env.API_BASE_URL || '';
 
 interface AgentMetadata {
   type: string;
