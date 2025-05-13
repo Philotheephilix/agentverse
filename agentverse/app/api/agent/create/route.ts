@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HCS10Client, StandardNetworkType } from "@hashgraphonline/standards-agent-kit";
+import { jobManager } from "@/lib/jobManager";
 
 interface RegistrationResult {
   metadata: {
@@ -8,43 +9,26 @@ interface RegistrationResult {
   };
 }
 
-export async function POST(req: NextRequest) {
+async function createAgent(data: Record<string, unknown>, jobId: string) {
   try {
-    const data: Record<string, unknown> = await req.json();
+    console.log('Starting agent creation for job:', jobId);
     const { name, description, profilePictureUrl, tools } = data;
-
-    if (!('name' in data) || !('description' in data)) {
-      return NextResponse.json(
-        { error: "Missing required parameter(s): name, description" },
-        { status: 400 }
-      );
-    }
 
     const operatorId: string = process.env.HEDERA_OPERATOR_ID!;
     const operatorPrivateKey: string = process.env.HEDERA_PRIVATE_KEY!;
     const network: StandardNetworkType =
       (process.env.HEDERA_NETWORK as StandardNetworkType) || 'testnet';
 
-    // Basic Initialization
     const hcs10Client = new HCS10Client(operatorId, operatorPrivateKey, network);
     console.log(
       `Client Initialized: Operator ${hcs10Client.getOperatorId()}, Network ${hcs10Client.getNetwork()}`
     );
 
-    // Start the agent creation process
-    const registrationPromise = hcs10Client.createAndRegisterAgent({
+    const registrationResult = await hcs10Client.createAndRegisterAgent({
       name: name as string,
       description: description as string,
       capabilities: [0],
     });
-
-    // Set a timeout for the entire operation
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Operation timed out')), 180000); // 3 minute timeout
-    });
-
-    // Race between the registration and timeout
-    const registrationResult = await Promise.race([registrationPromise, timeoutPromise]) as RegistrationResult;
 
     if (!registrationResult?.metadata) {
       throw new Error('Registration failed: metadata is undefined');
@@ -61,9 +45,39 @@ export async function POST(req: NextRequest) {
     if (profilePictureUrl) agentMetadata.profilePictureUrl = profilePictureUrl;
     if (tools && Array.isArray(tools)) agentMetadata.tools = tools;
 
-    return NextResponse.json({ agentMetadata }, { status: 200 });
+    console.log('Agent creation completed for job:', jobId);
+    jobManager.completeJob(jobId, { agentMetadata });
   } catch (err) {
-    console.error('Error in agent creation:', err);
+    console.error('Error in agent creation for job:', jobId, err);
+    jobManager.failJob(jobId, err instanceof Error ? err.message : 'Unknown error occurred');
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const data: Record<string, unknown> = await req.json();
+
+    if (!('name' in data) || !('description' in data)) {
+      return NextResponse.json(
+        { error: "Missing required parameter(s): name, description" },
+        { status: 400 }
+      );
+    }
+
+    const jobId = jobManager.createJob();
+    console.log('Created new job:', jobId);
+    
+    // Start the agent creation process asynchronously
+    // Use setImmediate to ensure the response is sent before starting the long process
+    setImmediate(() => {
+      createAgent(data, jobId).catch(err => {
+        console.error('Unhandled error in createAgent:', err);
+      });
+    });
+
+    return NextResponse.json({ jobId }, { status: 202 });
+  } catch (err) {
+    console.error('Error initiating agent creation:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Unknown error occurred' },
       { status: 500 }

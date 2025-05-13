@@ -21,117 +21,131 @@ export default function RegisterPage() {
     agentType: 0,
   })
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const pollJobStatus = async (jobId: string): Promise<any> => {
+    const response = await fetch(`/api/agent/status?jobId=${jobId}`);
+    const data = await response.json();
+
+    if (data.status === 'completed') {
+      return data.result.agentMetadata;
+    } else if (data.status === 'failed') {
+      throw new Error(data.error || 'Job failed');
+    }
+
+    // If still pending, wait 5 seconds and try again
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    return pollJobStatus(jobId);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     setLoading(true);
+    setError(null);
     e.preventDefault();
-  
-    const pollForAgent = async () => {
-      const agent = await fetch("/api/agent/create", {
+
+    try {
+      // Start the agent creation process
+      const createResponse = await fetch("/api/agent/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
-      
-      if (!agent.ok) {
-        throw new Error('Failed to create agent');
-      }
-      
-      const res = await agent.json();
-      if (res.agentMetadata) {
-        return res.agentMetadata;
-      }
-      
-      // If no metadata yet, wait and try again
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      return pollForAgent();
-    };
 
-    try {
-      const agentMetadata = await pollForAgent();
+      if (!createResponse.ok) {
+        throw new Error('Failed to start agent creation');
+      }
+
+      const { jobId } = await createResponse.json();
+      
+      // Poll for job completion
+      const agentMetadata = await pollJobStatus(jobId);
+      
+      // Once we have the metadata, proceed with contract interaction
       const [address] = await walletClient?.getAddresses() || [];
 
       const tx = await walletClient?.writeContract({
         address: AgentRegistryContractAddress,
         abi: AgentRegistryContractABI,
         functionName: 'registerAgent',
-        args: [ agentMetadata.name,
+        args: [
+          agentMetadata.name,
           agentMetadata.description,
-          agentMetadata.topicId,  // this is a string
-          formData.agentType,     ],
+          agentMetadata.topicId,
+          formData.agentType,
+        ],
         account: address,
-      })
+      });
 
       const receipt = await client.waitForTransactionReceipt({
         hash: tx!,
       });
+      
       localStorage.setItem("userTopicId", agentMetadata.topicId);
       console.log(receipt);
       setLoading(false);
-      router.push("/agentverse")
+      router.push("/agentverse");
     } catch (error) {
       console.error('Error creating agent:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
       setLoading(false);
-      // You might want to show an error message to the user here
     }
   }
 
   return (
     <>
-    {loading ? (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin w-12 h-12 bg-red-500 border-4 border-yellow-400"></div>
-      </div>
-    ) : (
-      <div className="pixel-container max-w-md w-full">
-        <div className="pixel-header">
-          <h1 className="pixel-text text-center text-2xl mb-6">REGISTER USER AGENT</h1>
+      {loading ? (
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin w-12 h-12 bg-red-500 border-4 border-yellow-400"></div>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="form-group">
-            <label className="pixel-label">AGENT NAME</label>
-            <PixelInput
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="ENTER AGENT NAME"
-            />
+      ) : (
+        <div className="pixel-container max-w-md w-full">
+          <div className="pixel-header">
+            <h1 className="pixel-text text-center text-2xl mb-6">REGISTER USER AGENT</h1>
           </div>
 
-          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
 
-          <div className="form-group">
-            <label className="pixel-label">DESCRIPTION</label>
-            <PixelTextarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              placeholder="DESCRIBE YOUR AGENT'S PERSONALITY"
-              rows={4}
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="form-group">
+              <label className="pixel-label">AGENT NAME</label>
+              <PixelInput
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                placeholder="ENTER AGENT NAME"
+              />
+            </div>
 
-          <div className="flex justify-center mt-8">
-            <PixelButton type="submit" text="CREATE AGENT"  />
-          </div>
-        </form>
-     
+            <div className="form-group">
+              <label className="pixel-label">DESCRIPTION</label>
+              <PixelTextarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                required
+                placeholder="DESCRIBE YOUR AGENT'S PERSONALITY"
+                rows={4}
+              />
+            </div>
 
-      {/* CRT Effect Overlay */}
-      
-    </div>
-  )}
-  </>
-   
-)
+            <div className="flex justify-center mt-8">
+              <PixelButton type="submit" text="CREATE AGENT" />
+            </div>
+          </form>
+        </div>
+      )}
+    </>
+  );
 }
